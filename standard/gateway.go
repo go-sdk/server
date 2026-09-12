@@ -11,10 +11,16 @@ import (
 	"google.golang.org/grpc/metadata"
 )
 
+// gatewayOutgoingHeaderMatcher 丢弃全部 gRPC 响应头：外层 HTTP 中间件已经写入 X-Request-Id，
+// 若再透传 gRPC 响应头会因 grpc-gateway 使用 Header.Add 而产生重复响应头；SpanID 仅用于日志，不出现在响应中。
+func gatewayOutgoingHeaderMatcher(_ string) (string, bool) {
+	return "", false
+}
+
 func gatewayRequestMetadata(ctx context.Context, request *http.Request) metadata.MD {
 	requestContext := FromContext(ctx)
 	pairs := []string{
-		requestIDMetadataKey, requestContext.RequestID(),
+		traceIDMetadataKey, requestContext.TraceID(),
 		clientIPMetadataKey, requestContext.ClientIP(),
 		contentTypeMetadataKey, request.Header.Get("Content-Type"),
 		userAgentMetadataKey, request.UserAgent(),

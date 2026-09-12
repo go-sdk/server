@@ -69,7 +69,10 @@ func New(opts ...Option) (*Server, error) {
 		healthServer.SetServingStatus(service, grpchealthv1.HealthCheckResponse_SERVING)
 	}
 
-	gatewayOptions := []runtime.ServeMuxOption{runtime.WithMetadata(gatewayRequestMetadata)}
+	gatewayOptions := []runtime.ServeMuxOption{
+		runtime.WithMetadata(gatewayRequestMetadata),
+		runtime.WithOutgoingHeaderMatcher(gatewayOutgoingHeaderMatcher),
+	}
 	gatewayOptions = append(gatewayOptions, cfg.gatewayOptions...)
 	gatewayOptions = append(gatewayOptions, runtime.WithForwardResponseRewriter(gatewayResponseRewriter))
 	gatewayMux := runtime.NewServeMux(gatewayOptions...)

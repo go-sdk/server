@@ -10,7 +10,8 @@ import (
 )
 
 const (
-	RequestIDKey   = "x-request-id"
+	TraceIDKey     = "trace-id"
+	SpanIDKey      = "span-id"
 	JWTKey         = "jwt"
 	DepthKey       = "x-depth"
 	ClientIPKey    = "client-ip"
@@ -72,7 +73,10 @@ func (c *Context) String(key any) string {
 	return cast.ToString(c.Get(key))
 }
 
-func (c *Context) RequestID() string { return c.String(RequestIDKey) }
+func (c *Context) TraceID() string { return c.String(TraceIDKey) }
+
+// SpanID 返回当前服务内单次请求到响应的处理标识。
+func (c *Context) SpanID() string { return c.String(SpanIDKey) }
 
 func (c *Context) Depth() int {
 	depth := cast.ToInt(c.Get(DepthKey))

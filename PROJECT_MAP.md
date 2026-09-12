@@ -16,7 +16,7 @@ server/
 │   ├── client.go                   gRPC ClientConn 创建和 lifex 生命周期注册
 │   ├── client_options.go           Client 明文、TLS 和 middleware Options
 │   ├── client_middleware.go        Client 上下文透传和 Payload Logging
-│   ├── context.go                  Request ID、JWT Claims 和调用深度
+│   ├── context.go                  TraceID、SpanID、JWT Claims 和调用深度
 │   ├── error.go                    业务响应错误及内置错误模板
 │   ├── error_converter.go          应用依赖错误转换接口和 interceptor
 │   ├── gateway.go                  Gateway 注册和回连 endpoint 解析
@@ -28,7 +28,7 @@ server/
 │   ├── options.go                  Server 初始化 Options 和注册函数类型
 │   ├── payload_logging.go          gRPC 请求和响应 Payload Logging
 │   ├── recovery.go                 HTTP 与 gRPC Recovery
-│   ├── request_context.go          Request ID 和请求上下文
+│   ├── request_context.go          TraceID、SpanID 和请求上下文
 │   ├── response.go                 Gateway 成功和失败响应结构
 │   ├── server.go                   Server 构造、gmux 和额外路由注册
 │   ├── tls.go                      TLS 判断和 Gateway 客户端凭据
@@ -86,7 +86,7 @@ Gateway 将成功的 Protobuf 消息放入 `data`，成功码为零且默认不�
 
 ### Middleware
 
-- Request Context 在 HTTP Header、HTTP context、gRPC metadata 和业务 context 间传递 Request ID、调用深度与安全的请求信息，并注入 `standard.Context` 和 `core/logx`。
+- Request Context 对外以 `X-Request-Id` 请求头和 gRPC `x-request-id` metadata 接收并回写链路标识，内部统一命名为 TraceID；每次请求入口生成服务内 SpanID，仅随日志输出，不透传也不写入响应。两者与调用深度和安全的请求信息一起在 HTTP Header、HTTP context、gRPC metadata 和业务 context 间传递，并注入 `standard.Context` 和 `core/logx`。Gateway 不透传任何 gRPC 响应头，HTTP 响应的 `X-Request-Id` 由外层 HTTP 中间件统一写入。
 - Logging 记录 gRPC 调用元数据；Payload Logging 分别记录请求和响应，敏感字段以及设置 `server.options.method.skip_log` 的完整 payload 使用 `***` 替代。
 - JWT Auth 使用 Option 注入的 HS256 密钥验证 Bearer Token，验证后的 Claims 写入 `standard.Context`；设置 `server.options.method.skip_auth` 的 RPC 跳过鉴权。
 - Protovalidate 执行 `buf.validate` 规则，对原生 gRPC 和注解生成的 Gateway 请求生效。
@@ -107,7 +107,7 @@ Gateway 将成功的 Protobuf 消息放入 `data`，成功码为零且默认不�
 - `NewClient` 创建默认明文的 `grpc.ClientConn`，并通过 `lifex.OnDeinit` 注册关闭函数。
 - Client 可通过根证书文件、根证书 PEM 或自定义 `tls.Config` 启用 TLS。
 - 默认 Client interceptor 依次执行上下文透传、Logging、Payload Logging 和自定义 interceptor。
-- 出站请求透传 Request ID 和内部保存的 Bearer Token，并将 depth 加一；认证原文不通过公共 Context API 暴露。
+- 出站请求透传 TraceID（`x-request-id` metadata）和内部保存的 Bearer Token，并将 depth 加一；SpanID 不透传，由下游服务在请求入口自行生成；认证原文不通过公共 Context API 暴露。
 
 ## 测试服务器
 

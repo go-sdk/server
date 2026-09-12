@@ -9,7 +9,8 @@ import (
 
 func TestNewContext(t *testing.T) {
 	ctx := NewContext(context.Background(),
-		RequestIDKey, "request-1",
+		TraceIDKey, "trace-1",
+		SpanIDKey, "span-1",
 		DepthKey, 2,
 		ClientIPKey, "127.0.0.1",
 		ContentTypeKey, "application/grpc",
@@ -17,8 +18,11 @@ func TestNewContext(t *testing.T) {
 		JWTKey, jwt.MapClaims{"sub": "user-1"},
 	)
 	requestContext := FromContext(ctx)
-	if requestContext.RequestID() != "request-1" {
-		t.Fatalf("unexpected request id: %q", requestContext.RequestID())
+	if requestContext.TraceID() != "trace-1" {
+		t.Fatalf("unexpected trace id: %q", requestContext.TraceID())
+	}
+	if requestContext.SpanID() != "span-1" {
+		t.Fatalf("unexpected span id: %q", requestContext.SpanID())
 	}
 	if requestContext.Depth() != 2 {
 		t.Fatalf("unexpected depth: %d", requestContext.Depth())
@@ -39,7 +43,7 @@ func TestNewContext(t *testing.T) {
 	}
 
 	derived := NewContext(ctx, DepthKey, 3)
-	if FromContext(derived).RequestID() != "request-1" || FromContext(derived).Depth() != 3 {
+	if FromContext(derived).TraceID() != "trace-1" || FromContext(derived).Depth() != 3 {
 		t.Fatal("derived context must preserve existing values")
 	}
 }

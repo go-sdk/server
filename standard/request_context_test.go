@@ -16,21 +16,27 @@ func TestHTTPRequestContextMiddleware(t *testing.T) {
 	}))
 	request := httptest.NewRequest(http.MethodGet, "/health", nil)
 	request.RemoteAddr = "192.0.2.1:1234"
-	request.Header.Set(requestIDHeader, "request-1")
+	request.Header.Set(traceIDHeader, "trace-1")
 	request.Header.Set(depthHeader, "2")
 	request.Header.Set("Content-Type", "application/json")
 	request.Header.Set("User-Agent", "test-agent")
 	response := httptest.NewRecorder()
 	handler.ServeHTTP(response, request)
 
-	if response.Header().Get(requestIDHeader) != "request-1" {
-		t.Fatalf("unexpected response request id: %q", response.Header().Get(requestIDHeader))
+	if response.Header().Get(traceIDHeader) != "trace-1" {
+		t.Fatalf("unexpected response trace id: %q", response.Header().Get(traceIDHeader))
+	}
+	if response.Header().Get("X-Span-ID") != "" {
+		t.Fatal("span id must not be exposed in the response")
 	}
 	if requestContext == nil {
 		t.Fatal("request context was not initialized")
 	}
-	if requestContext.RequestID() != "request-1" || requestContext.Depth() != 2 {
-		t.Fatalf("unexpected request context: request_id=%q depth=%d", requestContext.RequestID(), requestContext.Depth())
+	if requestContext.TraceID() != "trace-1" || requestContext.Depth() != 2 {
+		t.Fatalf("unexpected request context: trace_id=%q depth=%d", requestContext.TraceID(), requestContext.Depth())
+	}
+	if requestContext.SpanID() == "" {
+		t.Fatal("span id must be generated")
 	}
 	if requestContext.ClientIP() != "192.0.2.1" || requestContext.ContentType() != "application/json" || requestContext.UserAgent() != "test-agent" {
 		t.Fatal("request metadata was not initialized")
@@ -39,7 +45,7 @@ func TestHTTPRequestContextMiddleware(t *testing.T) {
 
 func TestOutgoingRequestContext(t *testing.T) {
 	ctx := metadata.AppendToOutgoingContext(context.Background(), "custom", "value")
-	ctx = NewContext(ctx, RequestIDKey, "request-1", DepthKey, 2)
+	ctx = NewContext(ctx, TraceIDKey, "trace-1", DepthKey, 2)
 	ctx = contextWithAuthorization(ctx, "Bearer token")
 	outgoing := outgoingRequestContext(ctx)
 	values, ok := metadata.FromOutgoingContext(outgoing)
@@ -47,7 +53,7 @@ func TestOutgoingRequestContext(t *testing.T) {
 		t.Fatal("outgoing metadata was not initialized")
 	}
 	assertMetadataValue(t, values, "custom", "value")
-	assertMetadataValue(t, values, requestIDMetadataKey, "request-1")
+	assertMetadataValue(t, values, traceIDMetadataKey, "trace-1")
 	assertMetadataValue(t, values, depthMetadataKey, "3")
 	assertMetadataValue(t, values, "authorization", "Bearer token")
 }

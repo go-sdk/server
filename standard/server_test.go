@@ -34,9 +34,10 @@ type contextServiceImpl struct{}
 func (contextServiceImpl) Inspect(ctx context.Context, _ *emptypb.Empty) (*structpb.Struct, error) {
 	requestContext := FromContext(ctx)
 	return structpb.NewStruct(map[string]any{
-		"request_id": requestContext.RequestID(),
-		"depth":      requestContext.Depth(),
-		"subject":    requestContext.JWT()["sub"],
+		"trace_id": requestContext.TraceID(),
+		"span_id":  requestContext.SpanID(),
+		"depth":    requestContext.Depth(),
+		"subject":  requestContext.JWT()["sub"],
 	})
 }
 
@@ -116,11 +117,11 @@ func TestServerWithBufconn(t *testing.T) {
 	}
 	authorization := "Bearer " + signedToken
 	ctx = metadata.NewIncomingContext(ctx, metadata.Pairs(
-		requestIDMetadataKey, "request-1",
+		traceIDMetadataKey, "trace-1",
 		depthMetadataKey, "2",
 		"authorization", authorization,
 	))
-	ctx, _ = grpcRequestContext(ctx)
+	ctx, _, _ = grpcRequestContext(ctx)
 	ctx, err = contextWithJWT(ctx, authorization, secret)
 	if err != nil {
 		t.Fatalf("initialize source jwt context: %v", err)
@@ -130,11 +131,14 @@ func TestServerWithBufconn(t *testing.T) {
 		t.Fatalf("invoke context service: %v", err)
 	}
 	fields := response.AsMap()
-	if fields["request_id"] != "request-1" {
-		t.Fatalf("unexpected propagated request id: %v", fields["request_id"])
+	if fields["trace_id"] != "trace-1" {
+		t.Fatalf("unexpected propagated trace id: %v", fields["trace_id"])
 	}
 	if fields["depth"] != float64(3) {
 		t.Fatalf("unexpected propagated depth: %v", fields["depth"])
+	}
+	if spanID, _ := fields["span_id"].(string); spanID == "" {
+		t.Fatalf("span id must be generated: %v", fields["span_id"])
 	}
 	if fields["subject"] != "user-1" {
 		t.Fatalf("unexpected propagated jwt subject: %v", fields["subject"])

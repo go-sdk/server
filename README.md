@@ -134,7 +134,7 @@ err = server.HandlePath(
 )
 ```
 
-`HandlePath` 只能在 `Start` 前调用。额外 HTTP 接口会经过 HTTP Request ID、访问日志和 Recovery，但没有 protobuf 消息，因此不会应用 Protovalidate。
+`HandlePath` 只能在 `Start` 前调用。额外 HTTP 接口会经过 HTTP 链路标识（TraceID/SpanID）、访问日志和 Recovery，但没有 protobuf 消息，因此不会应用 Protovalidate。
 
 配置 JWT 后，额外 HTTP 接口同样要求 `Authorization: Bearer <token>`，并可通过 `standard.FromContext(r.Context())` 读取已验证的 Claims 和请求参数。额外接口没有 Protobuf MethodOptions，不能使用 `skip_auth`。
 
@@ -219,8 +219,8 @@ gRPC interceptor 顺序为：
 Request Context -> Logging -> Payload Logging -> JWT Auth -> Protovalidate -> 自定义 Interceptor -> Error Converter -> Recovery
 ```
 
-- Request Context 使用 `X-Request-ID` 和 gRPC `x-request-id` metadata；缺失时生成 UUID v7，并将请求标识、调用深度、客户端 IP、content-type 和 user-agent 写入 `standard.Context`。
-- `core/logx.Ctx(ctx)` 自动携带 `x-request-id` 和 depth；业务代码通过 `standard.FromContext(ctx)` 读取请求参数和 JWT Claims。
+- Request Context 对外使用 `X-Request-Id` 请求头和 gRPC `x-request-id` metadata 接收与回写链路标识；内部统一命名为 TraceID（`standard.TraceIDKey`，日志字段 `trace-id`），缺失时生成 UUID v7，并在同一进程内透传。每次请求进入服务时生成新的 SpanID（`standard.SpanIDKey`，日志字段 `span-id`），标识本服务内单次请求到响应的处理，不向下游透传，也不出现在任何响应中。TraceID、SpanID、调用深度、客户端 IP、content-type 和 user-agent 会写入 `standard.Context`。
+- `core/logx.Ctx(ctx)` 自动携带 `trace-id`、`span-id` 和 depth；业务代码通过 `standard.FromContext(ctx)` 读取请求参数和 JWT Claims。
 - Logging 记录协议、方法、状态和耗时；Payload Logging 分别输出 `grpc request` 和 `grpc response`，不记录认证头、JWT 原文或完整 metadata。
 - Payload Logging 的 `content_length` 是 `proto.Size` 得到的逻辑消息长度，不代表压缩和 HTTP/2 帧编码后的网络字节数。
 - 方法设置 `(server.options.method).skip_log = true` 时仍记录请求与响应元数据，但 payload 使用 `***`；字段设置 `(server.options.field).sensitive = true` 时递归脱敏。
@@ -233,11 +233,14 @@ Request Context -> Logging -> Payload Logging -> JWT Auth -> Protovalidate -> �
 
 ```go
 requestContext := standard.FromContext(ctx)
-requestID := requestContext.RequestID()
+traceID := requestContext.TraceID()
+spanID := requestContext.SpanID()
 clientIP := requestContext.ClientIP()
 depth := requestContext.Depth()
 claims := requestContext.JWT()
 ```
+
+`TraceID` 是跨服务透传的链路标识，对外线上协议固定为 `X-Request-Id` 请求头和 gRPC `x-request-id` metadata；`SpanID` 由每个服务在请求入口生成，只标识本服务内这一次请求到响应的处理，仅随日志输出，不随出站调用传递，也不写入 HTTP 响应头或 gRPC 响应 metadata。HTTP 响应只会写一个 `X-Request-Id`；Gateway 不透传任何 gRPC 响应头，因此 HTTP 响应中不会出现 `Grpc-Metadata-` 前缀的头或重复的 `X-Request-Id`。
 
 `JWT()` 返回已验证 Claims 的副本，不包含原始 Bearer Token。未配置 `WithJWTSecret` 时不启用鉴权。标准 gRPC Health Service 始终启用，并固定跳过鉴权和 Payload Logging；Reflection 默认关闭，仅通过 `WithReflection()` 启用，启用后仍遵循 JWT 鉴权。
 
@@ -245,7 +248,7 @@ claims := requestContext.JWT()
 
 ```go
 ctx = standard.NewContext(ctx,
-	standard.RequestIDKey, requestID,
+	standard.TraceIDKey, traceID,
 	standard.DepthKey, depth,
 )
 ```
@@ -260,7 +263,7 @@ if err != nil {
 client := corev1.NewUserServiceClient(conn)
 ```
 
-Client 默认使用明文连接，并由 `lifex` 在解构阶段关闭。默认 interceptor 负责 Logging、Payload Logging，以及从 `standard.Context` 透传 `x-request-id`、已验证 JWT 对应的 Bearer Token，并将 `x-depth` 加一。认证原文不会通过公共 Context API 暴露或写入日志。
+Client 默认使用明文连接，并由 `lifex` 在解构阶段关闭。默认 interceptor 负责 Logging、Payload Logging，以及从 `standard.Context` 透传 `x-request-id` metadata、已验证 JWT 对应的 Bearer Token，并将 `x-depth` 加一。SpanID 不透传，由下游服务在请求入口自行生成。认证原文不会通过公共 Context API 暴露或写入日志。
 
 通过根证书文件、根证书 PEM 或完整 TLS 配置启用 TLS：
 

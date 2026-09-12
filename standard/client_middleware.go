@@ -26,8 +26,8 @@ func outgoingRequestContext(ctx context.Context) context.Context {
 	requestContext := FromContext(ctx)
 	metadataValues, _ := metadata.FromOutgoingContext(ctx)
 	metadataValues = metadataValues.Copy()
-	if requestContext.RequestID() != "" {
-		metadataValues.Set(requestIDMetadataKey, requestContext.RequestID())
+	if requestContext.TraceID() != "" {
+		metadataValues.Set(traceIDMetadataKey, requestContext.TraceID())
 	}
 	if requestContext.authorization != "" {
 		metadataValues.Set("authorization", requestContext.authorization)
