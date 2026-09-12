@@ -25,9 +25,9 @@ var File_common_openapi_proto protoreflect.FileDescriptor
 
 const file_common_openapi_proto_rawDesc = "" +
 	"\n" +
-	"\x14common/openapi.proto\x12\x06common\x1a.protoc-gen-openapiv2/options/annotations.protoB\xbb\x05\x92A\xbb\x04\x12\xc9\x02\n" +
+	"\x14common/openapi.proto\x12\x06common\x1a.protoc-gen-openapiv2/options/annotations.protoB\xcb\x05\x92A\xcb\x04\x12\xc9\x02\n" +
 	"\x11Go SDK Server API\x12\xf9\x01go-sdk/server 示例服务的 HTTP API 文档，由 grpc-gateway 在同一端口同时提供 HTTP API 与原生 gRPC。成功响应统一将 Protobuf 消息包装在 data 字段下；失败响应包含 code、message、domain、reason 和 details。\"1\n" +
-	"\rgo-sdk/server\x12 https://github.com/go-sdk/server2\x051.0.0*\x02\x01\x022\x10application/json:\x10application/jsonZ\xb3\x01\n" +
+	"\rgo-sdk/server\x12 https://github.com/go-sdk/server2\x051.0.0\x1a\x0e127.0.0.1:8080*\x02\x01\x022\x10application/json:\x10application/jsonZ\xb3\x01\n" +
 	"\xb0\x01\n" +
 	"\tBearerJWT\x12\xa2\x01\b\x02\x12\x8c\x01JWT Bearer Token，格式：Bearer <token>。仅在使用 WithJWTSecret 配置密钥后启用；方法设置 skip_auth 的接口不需要。\x1a\rAuthorization \x02b\x0f\n" +
 	"\r\n" +

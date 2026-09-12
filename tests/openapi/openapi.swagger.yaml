@@ -11,6 +11,7 @@ tags:
     description: 账单服务
   - name: core.v1.UserService
     description: 用户服务
+host: 127.0.0.1:8080
 schemes:
   - http
   - https
