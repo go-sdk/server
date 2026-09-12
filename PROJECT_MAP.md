@@ -67,6 +67,7 @@ Gateway 使用生成代码中的 `Register*HandlerFromEndpoint`，因此注解�
 ### 初始化
 
 - `New` 应用 Options，创建 Protovalidate、标准 interceptor、`grpc.Server`、`runtime.ServeMux` 和 `http.Server`，然后向 `core/lifex` 注册启动和停止函数。
+- `WithName` 设置可选的 Server 实例标识，用于生命周期日志和 Serve 异常，不修改进程级全局日志字段。
 - `WithGRPCRegister` 注册 gRPC 服务。
 - `WithGatewayRegister` 收集生成的 Gateway endpoint 注册函数。
 - gmux 在 HTTP Handler 完成后配置，并返回供 `grpc.Server.Serve` 使用的虚拟 Listener。
@@ -90,7 +91,7 @@ Gateway 使用生成代码中的 `Register*HandlerFromEndpoint`，因此注解�
 
 - `lifex.Init` 调用 `Start`；`Start` 优先使用注入的 Listener，否则监听 Address，取得真实地址后注册 Gateway endpoint，并异步运行 HTTP 和 gRPC Serve 循环。
 - 未配置证书时使用 HTTP/1.1 与 h2c gRPC，配置证书后使用 HTTPS 与 TLS gRPC。
-- Serve 循环异常时通过 `lifex.Shutdown` 将错误传递给 `lifex.Wait`。
+- 配置实例名称后，Serve 循环异常通过 `lifex.Shutdown` 将带该名称的错误传递给 `lifex.Wait`。
 - `lifex.Wait` 收到 SIGINT、SIGTERM 或主动退出后调用 `Stop`；`Stop` 并行排空 HTTP 与 gRPC 请求，HTTP 排空后关闭 Gateway ClientConn，超时后强制停止。
 - Server 只能启动一次，`Stop` 可以重复调用。
 

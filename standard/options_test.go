@@ -49,3 +49,13 @@ func TestClientConfigValidate(t *testing.T) {
 		}
 	}
 }
+
+func TestWithName(t *testing.T) {
+	cfg := defaultConfig()
+	if err := WithName("  user-service  ")(&cfg); err != nil {
+		t.Fatalf("set server name: %v", err)
+	}
+	if cfg.name != "user-service" {
+		t.Fatalf("unexpected server name: %q", cfg.name)
+	}
+}

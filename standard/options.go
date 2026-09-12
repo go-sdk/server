@@ -27,6 +27,7 @@ type HTTPServerOption func(*http.Server)
 type Option func(*config) error
 
 type config struct {
+	name               string
 	address            string
 	listener           net.Listener
 	gracefulTimeout    time.Duration
@@ -78,6 +79,14 @@ func (c config) validate() error {
 		}
 	}
 	return nil
+}
+
+// WithName 设置生命周期日志和 Serve 异常使用的 Server 实例标识。
+func WithName(name string) Option {
+	return func(c *config) error {
+		c.name = strings.TrimSpace(name)
+		return nil
+	}
 }
 
 func WithAddress(address string) Option {

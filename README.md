@@ -24,6 +24,7 @@ go get github.com/go-sdk/server
 userService := NewUserService()
 
 server, err := standard.New(
+	standard.WithName("user-service"),
 	standard.WithAddress(":8080"),
 	standard.WithJWTSecret([]byte(os.Getenv("JWT_SECRET"))),
 	standard.WithReflection(),
@@ -89,7 +90,7 @@ if err := lifex.Wait(); err != nil {
 }
 ```
 
-`New` 会将 Server 的 `Start` 和 `Stop` 注册到全局 `lifex`。`lifex.Init` 完成监听和 Gateway 注册后异步启动服务；`lifex.Wait` 阻塞等待 SIGINT、SIGTERM 或 `lifex.Shutdown`。服务异常退出时，错误会通过 `lifex.Shutdown` 传递给 `Wait`。
+`New` 会将 Server 的 `Start` 和 `Stop` 注册到全局 `lifex`。`lifex.Init` 完成监听和 Gateway 注册后异步启动服务；`lifex.Wait` 阻塞等待 SIGINT、SIGTERM 或 `lifex.Shutdown`。服务异常退出时，错误会通过 `lifex.Shutdown` 传递给 `Wait`。配置 `WithName` 后，启动、停止日志会增加 `server` 字段，HTTP 或 gRPC Serve 异常也会包含该实例名称；该名称不会写入请求 metadata，也不会修改 `core/logx` 的进程级全局字段。
 
 也可以由业务逻辑主动触发退出：
 
@@ -129,6 +130,7 @@ server, err := standard.New(
 
 | Option                   | 用途                                              |
 |--------------------------|---------------------------------------------------|
+| `WithName`               | 设置生命周期日志和 Serve 异常中的 Server 实例标识 |
 | `WithAddress`            | 设置监听地址，默认 `:8080`                        |
 | `WithListener`           | 注入 Listener，优先于 Address                     |
 | `WithGracefulTimeout`    | 设置 lifex 解构阶段的停止超时，默认五秒           |

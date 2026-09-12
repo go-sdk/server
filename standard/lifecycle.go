@@ -54,11 +54,14 @@ func (s *Server) Start() error {
 		}
 		return s.httpServer.Serve(listener)
 	})
-	logx.Info().
+	event := logx.Info().
 		Str("network", listener.Addr().Network()).
 		Str("address", listener.Addr().String()).
-		Bool("tls", s.usesTLS()).
-		Msg("server listening")
+		Bool("tls", s.usesTLS())
+	if s.config.name != "" {
+		event.Str("server", s.config.name)
+	}
+	event.Msg("server listening")
 	return nil
 }
 
@@ -100,6 +103,11 @@ func (s *Server) stop(ctx context.Context) error {
 	s.state = serverStateStopped
 	close(s.stopDone)
 	s.mu.Unlock()
+	event := logx.Info()
+	if s.config.name != "" {
+		event.Str("server", s.config.name)
+	}
+	event.Msg("server stopped")
 	return err
 }
 
@@ -141,10 +149,14 @@ func (s *Server) serve(name string, serve func() error) {
 	if s.isStopping() || isExpectedServeError(err) {
 		return
 	}
+	component := name
+	if s.config.name != "" {
+		component = s.config.name + " " + component
+	}
 	if err == nil {
-		err = errx.Newf("%s server stopped unexpectedly", name)
+		err = errx.Newf("%s server stopped unexpectedly", component)
 	} else {
-		err = errx.Wrapf(err, "%s server", name)
+		err = errx.Wrapf(err, "%s server", component)
 	}
 	lifex.Shutdown(err)
 }
