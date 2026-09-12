@@ -1,6 +1,7 @@
 # yaml-language-server: $schema=https://www.schemastore.org/buf.gen.json
 
 version: v2
+# managed mode 统一注入 go_package，使生成代码的导入路径与物理目录一致
 managed:
   enabled: true
   override:
@@ -11,21 +12,56 @@ managed:
     - file_option: go_package
       value: github.com/go-sdk/server/options
       path: options.proto
+  # 依赖模块不生成本地代码，禁用改写以保留官方 go_package，避免悬空 import
   disable:
     - module: buf.build/googleapis/googleapis
     - module: buf.build/bufbuild/protovalidate
+    - module: buf.build/grpc-ecosystem/grpc-gateway
 plugins:
   # paths=import + module：输出路径由 go_package 推导（去掉 module 前缀），
-  # go_package 与物理目录一致，两个模块自动生成到各自目录
+  # go_package 与物理目录一致，两个模块自动生成到各自目录；
+  # 插件版本由 Makefile 的 make prepare 统一安装
+  # protoc-gen-go：生成消息与枚举的序列化代码 *.pb.go
   - local: protoc-gen-go
     out: .
     opt:
       - module=github.com/go-sdk/server
+  # protoc-gen-go-grpc：生成 gRPC 服务定义与客户端存根 *_grpc.pb.go
   - local: protoc-gen-go-grpc
     out: .
     opt:
       - module=github.com/go-sdk/server
+  # protoc-gen-grpc-gateway：根据 google.api.http 注解生成 HTTP 反向代理 *.gw.go
   - local: protoc-gen-grpc-gateway
     out: .
     opt:
       - module=github.com/go-sdk/server
+  # protoc-gen-go-json：为每个 Protobuf 消息和枚举生成 MarshalJSON/UnmarshalJSON，
+  # 委托 protojson，使消息嵌入普通结构体后仍可被 encoding/json 正确处理（oneof、map 等）；
+  # enums_as_ints：枚举输出数字而非字符串，allow_unknown：反序列化忽略未知字段
+  - local: protoc-gen-go-json
+    out: .
+    opt:
+      - module=github.com/go-sdk/server
+      - enums_as_ints=true
+      - allow_unknown=true
+  # protoc-gen-openapiv2：根据 google.api.http 注解生成 Swagger 2.0 文档，
+  # 不支持 module 参数；strategy: all 使全部 proto 在一次插件调用中处理，
+  # 否则默认按目录分次调用，allow_merge 会产出多个同名文件被丢弃；
+  # allow_merge 将全部 proto 合并为单文件 openapi.yaml，
+  # openapi_naming_strategy=fqn 使用全限定名避免跨包同名冲突，
+  # disable_default_errors 因 Gateway 失败响应为自定义结构（domain/reason），
+  # 枚举数字输出与 protoc-gen-go-json 保持一致，YAML 便于 diff 与版本控制
+  - local: protoc-gen-openapiv2
+    out: tests/openapi
+    strategy: all
+    opt:
+      - allow_merge=true
+      - merge_file_name=openapi
+      - include_package_in_tags=true
+      - openapi_naming_strategy=fqn
+      - use_go_templates=true
+      - disable_default_errors=true
+      - enums_as_ints=true
+      - output_format=yaml
+      - preserve_rpc_order=true

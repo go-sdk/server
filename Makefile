@@ -10,6 +10,8 @@ GO_LDFLAGS      := -ldflags '$(GO_LDFLAGS_PART)'
 PROTOC_GEN_GO_VERSION           ?= v1.36.12 # https://github.com/protocolbuffers/protobuf-go
 PROTOC_GEN_GO_GRPC_VERSION      ?= v1.6.2   # https://github.com/grpc/grpc-go
 PROTOC_GEN_GRPC_GATEWAY_VERSION ?= v2.30.0  # https://github.com/grpc-ecosystem/grpc-gateway
+PROTOC_GEN_OPENAPIV2_VERSION    ?= v2.30.0  # https://github.com/grpc-ecosystem/grpc-gateway（与 protoc-gen-grpc-gateway 同仓库同版本）
+PROTOC_GEN_GO_JSON_VERSION      ?= v1.1.3   # https://github.com/protoc-contrib/protoc-gen-go-json
 
 .PHONY: tidy
 tidy:					##@ Tidy go.mod and go.sum.
@@ -20,11 +22,13 @@ prepare:				##@ Install buf local plugins.
 	@go install google.golang.org/protobuf/cmd/protoc-gen-go@$(PROTOC_GEN_GO_VERSION)
 	@go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@$(PROTOC_GEN_GO_GRPC_VERSION)
 	@go install github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-grpc-gateway@$(PROTOC_GEN_GRPC_GATEWAY_VERSION)
+	@go install github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-openapiv2@$(PROTOC_GEN_OPENAPIV2_VERSION)
+	@go install github.com/protoc-contrib/protoc-gen-go-json/cmd/protoc-gen-go-json@$(PROTOC_GEN_GO_JSON_VERSION)
 
 .PHONY: generate
 generate:				##@ Lint & Generate proto files.
 	@if command -v buf >/dev/null 2>&1; then \
-		rm -rf tests/pb && rm -f options/*.pb.go && \
+		rm -rf tests/pb tests/openapi && rm -f options/*.pb.go options/*.pb.json.go && \
 		buf lint && buf generate && echo "done."; \
 	else \
 		echo "buf is not installed. Please install it from https://github.com/bufbuild/buf"; \

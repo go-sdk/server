@@ -1,12 +1,20 @@
 # yaml-language-server: $schema=https://www.schemastore.org/buf.json
 
+# Buf Workspace v2：单文件统一管理多个模块的依赖、lint 与兼容性检查
 version: v2
 modules:
+  # 公共方法/消息/字段选项模块，proto 包为 server.options，仅对外提供扩展定义
   - path: options
+  # 测试与示例协议模块，包含 google.api.http 注解和 buf.validate 规则
   - path: tests/proto
+# 远程依赖，具体版本由 buf.lock 锁定；生成时下载到本地镜像
 deps:
+  # google.api.http 注解和 google.rpc 错误详情
   - buf.build/googleapis/googleapis
+  # buf.validate 字段校验规则，由 Protovalidate interceptor 执行
   - buf.build/bufbuild/protovalidate
+  # openapiv2_swagger 扩展选项，由 openapi.proto 定义合并文档的 title 和 version
+  - buf.build/grpc-ecosystem/grpc-gateway
 lint:
   use:
     - STANDARD
@@ -17,6 +25,7 @@ lint:
     # 请求/响应可以使用相同的名称
     - RPC_REQUEST_RESPONSE_UNIQUE
   ignore_only:
+    # common 包承载跨服务通用类型，不按服务版本化；options 为基础库公共选项包
     PACKAGE_VERSION_SUFFIX:
       - options/options.proto
       - tests/proto/common
@@ -24,5 +33,6 @@ lint:
     PACKAGE_DIRECTORY_MATCH:
       - options/options.proto
 breaking:
+  # 以文件为单位检查破坏性变更，与生成代码的文件布局保持一致
   use:
     - FILE

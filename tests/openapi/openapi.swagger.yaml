@@ -1,0 +1,133 @@
+swagger: "2.0"
+info:
+  title: Go SDK Server API
+  description: go-sdk/server 示例服务的 HTTP API 文档，由 grpc-gateway 在同一端口同时提供 HTTP API 与原生 gRPC。成功响应统一将 Protobuf 消息包装在 data 字段下；失败响应包含 code、message、domain、reason 和 details。
+  version: 1.0.0
+  contact:
+    name: go-sdk/server
+    url: https://github.com/go-sdk/server
+tags:
+  - name: biz.v1.BillService
+    description: 账单服务
+  - name: core.v1.UserService
+    description: 用户服务
+schemes:
+  - http
+  - https
+consumes:
+  - application/json
+produces:
+  - application/json
+paths:
+  /biz/v1/bills:
+    get:
+      summary: 获取列表
+      operationId: BillService_List
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/biz.v1.ListBillResp'
+      parameters:
+        - name: paging.page
+          description: 当前页
+          in: query
+          required: false
+          type: integer
+          format: int32
+        - name: paging.pageSize
+          description: 每页大小
+          in: query
+          required: false
+          type: integer
+          format: int32
+        - name: paging.total
+          description: 总条数
+          in: query
+          required: false
+          type: integer
+          format: int32
+      tags:
+        - biz.v1.BillService
+  /core/v1/users:
+    post:
+      summary: 创建
+      operationId: UserService_Create
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/common.Id'
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/core.v1.CreateUserReq'
+      tags:
+        - core.v1.UserService
+definitions:
+  biz.v1.Bill:
+    type: object
+    properties:
+      id:
+        type: string
+        title: Id
+      amount:
+        type: number
+        format: double
+        title: 金额
+    title: 账单
+  biz.v1.ListBillResp:
+    type: object
+    properties:
+      paging:
+        $ref: '#/definitions/common.Paging'
+        title: 分页
+      records:
+        type: array
+        items:
+          type: object
+          $ref: '#/definitions/biz.v1.Bill'
+        title: 账单列表
+  common.Id:
+    type: object
+    properties:
+      id:
+        type: string
+        title: Id
+    title: Id
+  common.Paging:
+    type: object
+    properties:
+      page:
+        type: integer
+        format: int32
+        title: 当前页
+      pageSize:
+        type: integer
+        format: int32
+        title: 每页大小
+      total:
+        type: integer
+        format: int32
+        title: 总条数
+        readOnly: true
+    title: 分页
+  core.v1.CreateUserReq:
+    type: object
+    properties:
+      name:
+        type: string
+        title: 用户名
+      email:
+        type: string
+        title: 邮箱
+securityDefinitions:
+  BearerJWT:
+    type: apiKey
+    description: JWT Bearer Token，格式：Bearer <token>。仅在使用 WithJWTSecret 配置密钥后启用；方法设置 skip_auth 的接口不需要。
+    name: Authorization
+    in: header
+security:
+  - BearerJWT: []

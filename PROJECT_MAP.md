@@ -36,6 +36,7 @@ server/
 │       └── server.go               测试 Server、ClientConn 和自动清理
 ├── tests/
 │   ├── pb/                         由 Buf 生成的测试及示例代码
+│   ├── openapi/                    由 Buf 生成的 Swagger 2.0 文档（*.swagger.json）
 │   ├── proto/                      带 google.api.http 和 buf.validate 的示例协议
 │   └── server/                     标准 Server 示例及业务服务单元测试
 ├── AGENTS.md                       仓库协作与修改规范
@@ -129,7 +130,7 @@ standard ──> gmux
 
 ## 验证边界
 
-- `make prepare` 安装 Protobuf 生成插件；`make generate` 使用 Buf lint 并重新生成 `options` 和 `tests/pb`。
+- `make prepare` 安装 Protobuf 生成插件；`make generate` 使用 Buf lint 并重新生成 `options`、`tests/pb` 和 `tests/openapi`。
 - `make lint` 会先执行 `go mod tidy`，然后运行 golangci-lint。
 - `make test` 会运行竞态检测测试，必须得到用户明确授权后执行。
 - `standard` 使用 `bufconn` 验证真实 gRPC Server、Health 和 Client 上下文透传，不注册需要 TCP endpoint 的 Gateway。
