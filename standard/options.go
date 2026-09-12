@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"net"
 	"net/http"
+	"slices"
 	"strings"
 	"time"
 
@@ -44,6 +45,7 @@ type config struct {
 	httpServerOptions  []HTTPServerOption
 	unaryInterceptors  []grpc.UnaryServerInterceptor
 	streamInterceptors []grpc.StreamServerInterceptor
+	errorConverters    []ErrorConverter
 	grpcRegisters      []GRPCRegisterFunc
 	gatewayRegisters   []GatewayRegisterFunc
 	logger             grpclogging.Logger
@@ -77,6 +79,9 @@ func (c config) validate() error {
 		if register == nil {
 			return errx.New("gateway register function must not be nil")
 		}
+	}
+	if slices.ContainsFunc(c.errorConverters, isNilErrorConverter) {
+		return errx.New("error converter must not be nil")
 	}
 	return nil
 }
@@ -174,6 +179,17 @@ func WithUnaryInterceptors(interceptors ...grpc.UnaryServerInterceptor) Option {
 func WithStreamInterceptors(interceptors ...grpc.StreamServerInterceptor) Option {
 	return func(c *config) error {
 		c.streamInterceptors = append(c.streamInterceptors, interceptors...)
+		return nil
+	}
+}
+
+// WithErrorConverters 注入应用依赖错误到统一响应错误的转换器。
+func WithErrorConverters(converters ...ErrorConverter) Option {
+	return func(c *config) error {
+		if slices.ContainsFunc(converters, isNilErrorConverter) {
+			return errx.New("error converter must not be nil")
+		}
+		c.errorConverters = append(c.errorConverters, converters...)
 		return nil
 	}
 }

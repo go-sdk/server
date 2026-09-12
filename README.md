@@ -18,6 +18,65 @@ go get github.com/go-sdk/server
 
 上传、下载或 Webhook 等不适合建模为 RPC 的接口，可以通过 `Server.HandlePath` 直接注册到内部 Gateway Mux。底层 `runtime.ServeMux`、`http.Server` 和 `grpc.Server` 不对外暴露。
 
+## HTTP 返回结构
+
+Gateway 成功响应统一将 Protobuf 消息放在 `data` 下。成功码为零并默认隐藏：
+
+```json
+{
+  "data": {
+    "id": "1"
+  }
+}
+```
+
+失败响应保留 gRPC `code`、`message` 和结构化 `details`，并增加业务定义的 `domain` 和 `reason`。`details` 固定为最后一个字段，未包含结构化详情时输出空数组：
+
+```json
+{
+  "code": 3,
+  "message": "invalid parameter",
+  "domain": "USER_1001",
+  "reason": "user.name.required",
+  "details": []
+}
+```
+
+业务代码通过 `RespError` 构造可同时供原生 gRPC 和 Gateway 使用的错误：
+
+```go
+return nil, standard.ErrInvalidParam.
+	WithDomainReason("USER_1001", "user.name.required").
+	WithDetails(&errdetails.BadRequest{
+		FieldViolations: []*errdetails.BadRequest_FieldViolation{
+			{Field: "name", Description: "required"},
+		},
+	})
+```
+
+也可以使用 `standard.NewError(code, message)` 创建其他错误。`ErrInternal` 和 `ErrInvalidParam` 是不可变的内置错误模板，链式方法返回副本，可以安全地被并发请求复用。`domain` 约定为业务错误码，`reason` 为后续 i18n 信息预留；它们通过 `google.rpc.ErrorInfo` 在 gRPC 中传递，Gateway 会提升到失败响应顶层，不在 `details` 中重复输出。
+
+数据库、缓存或第三方 SDK 的错误可以通过 `ErrorConverter` 统一转换，而不让 Server 直接依赖具体驱动：
+
+```go
+standard.WithErrorConverters(
+	standard.ErrorConvertFunc(func(err error) (standard.RespError, bool) {
+		switch {
+		case errors.Is(err, sql.ErrNoRows):
+			return standard.NewError(codes.NotFound, "record not found").
+				WithDomainReason("RECORD_NOT_FOUND", "record.not_found"), true
+		case errors.Is(err, gorm.ErrRecordNotFound):
+			return standard.NewError(codes.NotFound, "record not found").
+				WithDomainReason("RECORD_NOT_FOUND", "record.not_found"), true
+		default:
+			return standard.RespError{}, false
+		}
+	}),
+)
+```
+
+转换器按注入顺序执行，第一个返回 `true` 的结果生效；未匹配错误保持不变。转换同时覆盖 unary 和 stream RPC，应用可以使用 `errors.Is` 或 `errors.As` 识别被包装的依赖错误。
+
 ## 创建服务
 
 ```go
@@ -145,6 +204,7 @@ server, err := standard.New(
 | `WithHTTPServerOptions`  | 调整 HTTP Server 超时等参数，Handler 不允许替换   |
 | `WithUnaryInterceptors`  | 在标准校验和 Recovery 之间插入 unary interceptor  |
 | `WithStreamInterceptors` | 在标准校验和 Recovery 之间插入 stream interceptor |
+| `WithErrorConverters`    | 将数据库等应用依赖错误转换为 `RespError`           |
 | `WithGRPCRegister`       | 注册真实 gRPC 服务                                |
 | `WithGatewayRegister`    | 注册 `google.api.http` 生成的 Gateway endpoint    |
 | `WithLogger`             | 替换默认的 `core/logx` gRPC 日志适配器            |
@@ -156,7 +216,7 @@ server, err := standard.New(
 gRPC interceptor 顺序为：
 
 ```text
-Request Context -> Logging -> Payload Logging -> JWT Auth -> Protovalidate -> 自定义 Interceptor -> Recovery
+Request Context -> Logging -> Payload Logging -> JWT Auth -> Protovalidate -> 自定义 Interceptor -> Error Converter -> Recovery
 ```
 
 - Request Context 使用 `X-Request-ID` 和 gRPC `x-request-id` metadata；缺失时生成 UUID v7，并将请求标识、调用深度、客户端 IP、content-type 和 user-agent 写入 `standard.Context`。
@@ -166,6 +226,7 @@ Request Context -> Logging -> Payload Logging -> JWT Auth -> Protovalidate -> �
 - 方法设置 `(server.options.method).skip_log = true` 时仍记录请求与响应元数据，但 payload 使用 `***`；字段设置 `(server.options.field).sensitive = true` 时递归脱敏。
 - 配置 `WithJWTSecret` 后使用 HS256 验证 Bearer Token；方法设置 `(server.options.method).skip_auth = true` 时跳过鉴权。
 - Protovalidate 执行 Protobuf 中的 `buf.validate` 规则，失败时返回 `InvalidArgument`。
+- Error Converter 按注册顺序将应用依赖错误转换为统一 `RespError`，未匹配错误原样返回。
 - Recovery 将 gRPC panic 转换为 `Internal`，并保护额外 HTTP Handler 不导致进程退出。
 
 ## 请求上下文

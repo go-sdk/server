@@ -71,6 +71,7 @@ func New(opts ...Option) (*Server, error) {
 
 	gatewayOptions := []runtime.ServeMuxOption{runtime.WithMetadata(gatewayRequestMetadata)}
 	gatewayOptions = append(gatewayOptions, cfg.gatewayOptions...)
+	gatewayOptions = append(gatewayOptions, runtime.WithForwardResponseRewriter(gatewayResponseRewriter))
 	gatewayMux := runtime.NewServeMux(gatewayOptions...)
 	handler := httpRequestContextMiddleware(httpAccessLogMiddleware(httpRecoveryMiddleware(gatewayMux)))
 	httpServer := newHTTPServer(cfg, handler)
@@ -132,6 +133,7 @@ func newGRPCServer(cfg config) (*grpc.Server, error) {
 		grpcprotovalidate.UnaryServerInterceptor(validator),
 	}
 	unaryInterceptors = append(unaryInterceptors, cfg.unaryInterceptors...)
+	unaryInterceptors = append(unaryInterceptors, unaryErrorConverterInterceptor(cfg.errorConverters))
 	unaryInterceptors = append(unaryInterceptors, grpcrecovery.UnaryServerInterceptor(recoveryOption))
 	streamInterceptors := []grpc.StreamServerInterceptor{
 		streamRequestContextInterceptor(),
@@ -144,6 +146,7 @@ func newGRPCServer(cfg config) (*grpc.Server, error) {
 		grpcprotovalidate.StreamServerInterceptor(validator),
 	}
 	streamInterceptors = append(streamInterceptors, cfg.streamInterceptors...)
+	streamInterceptors = append(streamInterceptors, streamErrorConverterInterceptor(cfg.errorConverters))
 	streamInterceptors = append(streamInterceptors, grpcrecovery.StreamServerInterceptor(recoveryOption))
 
 	grpcOptions := append([]grpc.ServerOption{}, cfg.grpcOptions...)

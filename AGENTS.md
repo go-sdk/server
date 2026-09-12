@@ -26,7 +26,7 @@
 - HTTP 和 gRPC 通过 gmux 共用同一个真实 Listener；HTTP 使用 `runtime.ServeMux`，gRPC 使用 gmux 返回的虚拟 Listener。
 - 只有上传、下载或 Webhook 等无法合理映射为 RPC 的接口才使用 `Server.HandlePath` 注册。
 - 不暴露底层 `runtime.ServeMux`、`http.Server` 或 `grpc.Server`，服务和 Gateway 注册通过 Options 注入。
-- Server 默认 interceptor 顺序为 Request Context、Logging、Payload Logging、JWT Auth、Protovalidate、自定义 interceptor、Recovery。
+- Server 默认 interceptor 顺序为 Request Context、Logging、Payload Logging、JWT Auth、Protovalidate、自定义 interceptor、Error Converter、Recovery。
 - Client 默认使用明文连接，并通过 Option 启用 TLS；默认 interceptor 负责请求上下文透传、Logging 和 Payload Logging。
 - `standard.NewContext` 和 `standard.FromContext` 统一管理 Request ID、JWT Claims、调用深度及安全的请求信息；认证原文仅供内部透传。
 - JWT 鉴权仅在注入 HS256 密钥后启用；Health Service 固定跳过鉴权和 Payload Logging，Reflection 默认关闭。

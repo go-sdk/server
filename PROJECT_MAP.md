@@ -17,6 +17,8 @@ server/
 │   ├── client_options.go           Client 明文、TLS 和 middleware Options
 │   ├── client_middleware.go        Client 上下文透传和 Payload Logging
 │   ├── context.go                  Request ID、JWT Claims 和调用深度
+│   ├── error.go                    业务响应错误及内置错误模板
+│   ├── error_converter.go          应用依赖错误转换接口和 interceptor
 │   ├── gateway.go                  Gateway 注册和回连 endpoint 解析
 │   ├── lifecycle.go                lifex 启动、异常退出和优雅停止
 │   ├── access_log.go               HTTP 访问日志
@@ -27,6 +29,7 @@ server/
 │   ├── payload_logging.go          gRPC 请求和响应 Payload Logging
 │   ├── recovery.go                 HTTP 与 gRPC Recovery
 │   ├── request_context.go          Request ID 和请求上下文
+│   ├── response.go                 Gateway 成功和失败响应结构
 │   ├── server.go                   Server 构造、gmux 和额外路由注册
 │   ├── tls.go                      TLS 判断和 Gateway 客户端凭据
 │   └── testserver/                 基于 bufconn 的标准测试服务器
@@ -62,6 +65,8 @@ http.Server
 
 Gateway 使用生成代码中的 `Register*HandlerFromEndpoint`，因此注解生成的 HTTP 请求会进入真实 gRPC Server，并经过与原生 gRPC 请求相同的 interceptor。不得使用 `Register*HandlerServer` 绕过 gRPC 调用链。
 
+Gateway 将成功的 Protobuf 消息放入 `data`，成功码为零且默认不输出。失败响应依次输出 `code`、`message`、`domain`、`reason` 和 `details`；其中 `domain` 和 `reason` 由业务通过 `RespError` 提供，承载它们的 `google.rpc.ErrorInfo` 不在 HTTP `details` 中重复输出。原生 gRPC 响应和 Status 结构保持不变。
+
 ## `standard` 包
 
 ### 初始化
@@ -84,6 +89,7 @@ Gateway 使用生成代码中的 `Register*HandlerFromEndpoint`，因此注解�
 - Logging 记录 gRPC 调用元数据；Payload Logging 分别记录请求和响应，敏感字段以及设置 `server.options.method.skip_log` 的完整 payload 使用 `***` 替代。
 - JWT Auth 使用 Option 注入的 HS256 密钥验证 Bearer Token，验证后的 Claims 写入 `standard.Context`；设置 `server.options.method.skip_auth` 的 RPC 跳过鉴权。
 - Protovalidate 执行 `buf.validate` 规则，对原生 gRPC 和注解生成的 Gateway 请求生效。
+- Error Converter 位于自定义 interceptor 和 Recovery 之间，按注册顺序将数据库等应用依赖错误转换为统一 `RespError`，未匹配错误原样返回。
 - Recovery 位于 gRPC interceptor 链最内层，并在 HTTP 层保护额外 Handler。
 - Health Service 默认启用且不鉴权、不记录 payload；Reflection 仅在设置 Option 后启用。
 
