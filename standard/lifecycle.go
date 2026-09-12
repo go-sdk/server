@@ -105,6 +105,7 @@ func (s *Server) stop(ctx context.Context) error {
 
 func (s *Server) shutdown(ctx context.Context, gatewayCancel context.CancelFunc) error {
 	var result error
+	s.healthServer.Shutdown()
 	httpDone := make(chan error, 1)
 	go func() {
 		httpDone <- s.httpServer.Shutdown(ctx)

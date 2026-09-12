@@ -1,6 +1,7 @@
 package standard
 
 import (
+	"crypto/tls"
 	"net"
 	"net/http"
 	"sync"
@@ -16,6 +17,9 @@ import (
 	grpcselector "github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/selector"
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/health"
+	grpchealthv1 "google.golang.org/grpc/health/grpc_health_v1"
+	"google.golang.org/grpc/reflection"
 )
 
 // Server 在同一个端口提供原生 gRPC 和 grpc-gateway HTTP 服务。
@@ -25,6 +29,7 @@ type Server struct {
 	gatewayMux   *runtime.ServeMux
 	httpServer   *http.Server
 	grpcListener net.Listener
+	healthServer *health.Server
 
 	mu            sync.Mutex
 	state         serverState
@@ -55,11 +60,19 @@ func New(opts ...Option) (*Server, error) {
 	for _, register := range cfg.grpcRegisters {
 		register(grpcServer)
 	}
+	healthServer := health.NewServer()
+	grpchealthv1.RegisterHealthServer(grpcServer, healthServer)
+	if cfg.reflection {
+		reflection.Register(grpcServer)
+	}
+	for service := range grpcServer.GetServiceInfo() {
+		healthServer.SetServingStatus(service, grpchealthv1.HealthCheckResponse_SERVING)
+	}
 
 	gatewayOptions := []runtime.ServeMuxOption{runtime.WithMetadata(gatewayRequestMetadata)}
 	gatewayOptions = append(gatewayOptions, cfg.gatewayOptions...)
 	gatewayMux := runtime.NewServeMux(gatewayOptions...)
-	handler := httpRequestIDMiddleware(httpAccessLogMiddleware(httpRecoveryMiddleware(gatewayMux)))
+	handler := httpRequestContextMiddleware(httpAccessLogMiddleware(httpRecoveryMiddleware(gatewayMux)))
 	httpServer := newHTTPServer(cfg, handler)
 	grpcListener, err := gmux.ConfigureServer(httpServer, nil)
 	if err != nil {
@@ -75,6 +88,7 @@ func New(opts ...Option) (*Server, error) {
 		gatewayMux:   gatewayMux,
 		httpServer:   httpServer,
 		grpcListener: grpcListener,
+		healthServer: healthServer,
 		state:        serverStateNew,
 		stopDone:     make(chan struct{}),
 	}
@@ -90,7 +104,7 @@ func (s *Server) HandlePath(method, path string, handler runtime.HandlerFunc) er
 	if s.state != serverStateNew {
 		return errx.New("http routes must be registered before the server starts")
 	}
-	if err := s.gatewayMux.HandlePath(method, path, handler); err != nil {
+	if err := s.gatewayMux.HandlePath(method, path, jwtHTTPHandler(s.config.jwtSecret, handler)); err != nil {
 		return errx.Wrap(err, "register http route")
 	}
 	return nil
@@ -108,21 +122,25 @@ func newGRPCServer(cfg config) (*grpc.Server, error) {
 	recoveryOption := grpcrecovery.WithRecoveryHandlerContext(recoveryHandler)
 	loggingMatcher := grpcselector.MatchFunc(shouldLogMethod)
 	unaryInterceptors := []grpc.UnaryServerInterceptor{
-		unaryRequestIDInterceptor(),
+		unaryRequestContextInterceptor(),
 		grpcselector.UnaryServerInterceptor(
-			grpclogging.UnaryServerInterceptor(logger, grpclogging.WithFieldsFromContext(requestIDLogFields)),
+			grpclogging.UnaryServerInterceptor(logger, grpclogging.WithFieldsFromContext(requestLogFields)),
 			loggingMatcher,
 		),
+		unaryPayloadLoggingInterceptor(),
+		unaryJWTAuthInterceptor(cfg.jwtSecret),
 		grpcprotovalidate.UnaryServerInterceptor(validator),
 	}
 	unaryInterceptors = append(unaryInterceptors, cfg.unaryInterceptors...)
 	unaryInterceptors = append(unaryInterceptors, grpcrecovery.UnaryServerInterceptor(recoveryOption))
 	streamInterceptors := []grpc.StreamServerInterceptor{
-		streamRequestIDInterceptor(),
+		streamRequestContextInterceptor(),
 		grpcselector.StreamServerInterceptor(
-			grpclogging.StreamServerInterceptor(logger, grpclogging.WithFieldsFromContext(requestIDLogFields)),
+			grpclogging.StreamServerInterceptor(logger, grpclogging.WithFieldsFromContext(requestLogFields)),
 			loggingMatcher,
 		),
+		streamPayloadLoggingInterceptor(),
+		streamJWTAuthInterceptor(cfg.jwtSecret),
 		grpcprotovalidate.StreamServerInterceptor(validator),
 	}
 	streamInterceptors = append(streamInterceptors, cfg.streamInterceptors...)
@@ -146,6 +164,16 @@ func newHTTPServer(cfg config, handler http.Handler) *http.Server {
 	}
 	if cfg.tlsConfig != nil {
 		server.TLSConfig = cfg.tlsConfig.Clone()
+	}
+	if cfg.certificate != nil {
+		if server.TLSConfig == nil {
+			server.TLSConfig = &tls.Config{MinVersion: tls.VersionTLS12}
+		}
+		server.TLSConfig.Certificates = []tls.Certificate{*cfg.certificate}
+		server.TLSConfig.GetCertificate = nil
+	} else if cfg.certFile != "" && server.TLSConfig != nil {
+		server.TLSConfig.Certificates = nil
+		server.TLSConfig.GetCertificate = nil
 	}
 	for _, opt := range cfg.httpServerOptions {
 		opt(server)

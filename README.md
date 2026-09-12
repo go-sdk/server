@@ -1,10 +1,10 @@
 # server
 
-`server` 是个人使用的 Go 服务基础类库，模块路径为 `github.com/go-sdk/server`。项目使用 gmux 在同一个端口提供原生 gRPC 和 grpc-gateway HTTP API，通过 `core/lifex` 管理进程生命周期，并统一 Request ID、访问日志、Protovalidate、Recovery、TLS 和优雅停止行为。
+`server` 是个人使用的 Go 服务基础类库，模块路径为 `github.com/go-sdk/server`。项目使用 gmux 在同一个端口提供原生 gRPC 和 grpc-gateway HTTP API，通过 `core/lifex` 管理进程生命周期，并统一请求上下文、访问日志、Payload Logging、JWT 鉴权、Protovalidate、Health、Recovery、TLS 和优雅停止行为。
 
 ## 环境要求
 
-- Go 1.26 或更高版本
+- Go 1.27 或更高版本
 
 ## 安装
 
@@ -25,6 +25,8 @@ userService := NewUserService()
 
 server, err := standard.New(
 	standard.WithAddress(":8080"),
+	standard.WithJWTSecret([]byte(os.Getenv("JWT_SECRET"))),
+	standard.WithReflection(),
 	standard.WithGRPCRegister(
 		func(registrar grpc.ServiceRegistrar) {
 			corev1.RegisterUserServiceServer(registrar, userService)
@@ -74,6 +76,8 @@ err = server.HandlePath(
 
 `HandlePath` 只能在 `Start` 前调用。额外 HTTP 接口会经过 HTTP Request ID、访问日志和 Recovery，但没有 protobuf 消息，因此不会应用 Protovalidate。
 
+配置 JWT 后，额外 HTTP 接口同样要求 `Authorization: Bearer <token>`，并可通过 `standard.FromContext(r.Context())` 读取已验证的 Claims 和请求参数。额外接口没有 Protobuf MethodOptions，不能使用 `skip_auth`。
+
 ## 启动与停止
 
 ```go
@@ -106,7 +110,18 @@ server, err := standard.New(
 )
 ```
 
-证书和私钥必须同时指定。Gateway 默认使用证书文件作为回连 gRPC 的信任根，并使用真实 endpoint 主机名进行校验；监听通配地址或证书名称不同时，应通过 `WithGatewayServerName` 指定证书名称。
+也可以直接注入内存中的 PEM 内容：
+
+```go
+server, err := standard.New(
+	standard.WithAddress(":8443"),
+	standard.WithCertificatePEM(certPEM, keyPEM),
+	standard.WithGatewayServerName("api.example.com"),
+	// 其他服务注册 Options。
+)
+```
+
+证书和私钥必须同时指定。Gateway 默认使用注入的证书文件或证书 PEM 作为回连 gRPC 的信任根，并使用真实 endpoint 主机名进行校验；监听通配地址或证书名称不同时，应通过 `WithGatewayServerName` 指定证书名称。
 
 复杂 TLS、动态证书和 mTLS 可以使用 `WithTLSConfig`。如果 Gateway 需要独立的客户端 TLS 策略，可通过 `WithGatewayDialOptions` 覆盖默认传输凭据；不得使用跳过证书校验作为生产默认配置。
 
@@ -118,6 +133,7 @@ server, err := standard.New(
 | `WithListener`           | 注入 Listener，优先于 Address                     |
 | `WithGracefulTimeout`    | 设置 lifex 解构阶段的停止超时，默认五秒           |
 | `WithCertificate`        | 设置 TLS 证书和私钥文件                           |
+| `WithCertificatePEM`     | 设置内存中的 PEM 证书和私钥                       |
 | `WithTLSConfig`          | 注入自定义 TLS 配置                               |
 | `WithGatewayEndpoint`    | 为非 TCP Listener 或特殊网络覆盖 Gateway endpoint |
 | `WithGatewayServerName`  | 设置 Gateway TLS 回连校验名称                     |
@@ -130,21 +146,87 @@ server, err := standard.New(
 | `WithGRPCRegister`       | 注册真实 gRPC 服务                                |
 | `WithGatewayRegister`    | 注册 `google.api.http` 生成的 Gateway endpoint    |
 | `WithLogger`             | 替换默认的 `core/logx` gRPC 日志适配器            |
+| `WithJWTSecret`          | 注入 HS256 密钥并启用 JWT 鉴权                    |
+| `WithReflection`         | 启用标准 gRPC Reflection Service                  |
 
 ## 默认 Middleware
 
 gRPC interceptor 顺序为：
 
 ```text
-Request ID -> Logging -> Protovalidate -> 自定义 Interceptor -> Recovery
+Request Context -> Logging -> Payload Logging -> JWT Auth -> Protovalidate -> 自定义 Interceptor -> Recovery
 ```
 
-- Request ID 使用 `X-Request-ID` 和 gRPC `x-request-id` metadata；缺失时生成 UUID v7。
-- 业务代码可以通过 `standard.RequestID(ctx)` 读取请求标识，`core/logx.Ctx(ctx)` 也会自动携带该字段。
-- Logging 记录协议、方法、状态、耗时和请求 ID，不记录 payload、认证头或完整 metadata。
-- 方法设置 `(options.method).skip_log = true` 时跳过对应的 gRPC 访问日志。
+- Request Context 使用 `X-Request-ID` 和 gRPC `x-request-id` metadata；缺失时生成 UUID v7，并将请求标识、调用深度、客户端 IP、content-type 和 user-agent 写入 `standard.Context`。
+- `core/logx.Ctx(ctx)` 自动携带 `x-request-id` 和 depth；业务代码通过 `standard.FromContext(ctx)` 读取请求参数和 JWT Claims。
+- Logging 记录协议、方法、状态和耗时；Payload Logging 分别输出 `grpc request` 和 `grpc response`，不记录认证头、JWT 原文或完整 metadata。
+- Payload Logging 的 `content_length` 是 `proto.Size` 得到的逻辑消息长度，不代表压缩和 HTTP/2 帧编码后的网络字节数。
+- 方法设置 `(server.options.method).skip_log = true` 时仍记录请求与响应元数据，但 payload 使用 `***`；字段设置 `(server.options.field).sensitive = true` 时递归脱敏。
+- 配置 `WithJWTSecret` 后使用 HS256 验证 Bearer Token；方法设置 `(server.options.method).skip_auth = true` 时跳过鉴权。
 - Protovalidate 执行 Protobuf 中的 `buf.validate` 规则，失败时返回 `InvalidArgument`。
 - Recovery 将 gRPC panic 转换为 `Internal`，并保护额外 HTTP Handler 不导致进程退出。
+
+## 请求上下文
+
+```go
+requestContext := standard.FromContext(ctx)
+requestID := requestContext.RequestID()
+clientIP := requestContext.ClientIP()
+depth := requestContext.Depth()
+claims := requestContext.JWT()
+```
+
+`JWT()` 返回已验证 Claims 的副本，不包含原始 Bearer Token。未配置 `WithJWTSecret` 时不启用鉴权。标准 gRPC Health Service 始终启用，并固定跳过鉴权和 Payload Logging；Reflection 默认关闭，仅通过 `WithReflection()` 启用，启用后仍遵循 JWT 鉴权。
+
+需要为主动发起的调用补充请求参数时，使用 `standard.NewContext`：
+
+```go
+ctx = standard.NewContext(ctx,
+	standard.RequestIDKey, requestID,
+	standard.DepthKey, depth,
+)
+```
+
+## gRPC Client
+
+```go
+conn, err := standard.NewClient("dns:///user-service:8080")
+if err != nil {
+	return err
+}
+client := corev1.NewUserServiceClient(conn)
+```
+
+Client 默认使用明文连接，并由 `lifex` 在解构阶段关闭。默认 interceptor 负责 Logging、Payload Logging，以及从 `standard.Context` 透传 `x-request-id`、已验证 JWT 对应的 Bearer Token，并将 `x-depth` 加一。认证原文不会通过公共 Context API 暴露或写入日志。
+
+通过根证书文件、根证书 PEM 或完整 TLS 配置启用 TLS：
+
+```go
+conn, err := standard.NewClient(
+	"dns:///user-service:8443",
+	standard.WithClientRootCertificatePEM(rootCertPEM),
+	standard.WithClientServerName("user-service.example.com"),
+)
+```
+
+可用的 Client Options 包括 `WithClientTLSConfig`、`WithClientRootCertificate`、`WithClientRootCertificatePEM`、`WithClientServerName`、`WithClientDialOptions`、`WithClientUnaryInterceptors`、`WithClientStreamInterceptors` 和 `WithClientLogger`。
+
+## 单元测试
+
+`standard/testserver` 使用 `bufconn` 启动真实标准 Server，并提供经过默认 Client interceptor 的连接。测试会自动释放 ClientConn、Server 和 Listener：
+
+```go
+server := testserver.New(t,
+	standard.WithGRPCRegister(func(registrar grpc.ServiceRegistrar) {
+		corev1.RegisterUserServiceServer(registrar, &userService{})
+	}),
+)
+client := corev1.NewUserServiceClient(server.Conn())
+
+response, err := client.Health(context.Background(), &common.Empty{})
+```
+
+`testserver` 固定注入 `bufconn` Listener，适用于原生 gRPC 和 interceptor 单元测试。需要真实 TCP endpoint 的 grpc-gateway HTTP 路由应使用独立的集成测试。
 
 ## 开发约定
 

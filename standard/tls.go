@@ -2,6 +2,7 @@ package standard
 
 import (
 	"crypto/tls"
+	"crypto/x509"
 	"net"
 
 	"github.com/go-sdk/core/errx"
@@ -25,6 +26,19 @@ func (s *Server) gatewayDialOptions(endpoint string) ([]grpc.DialOption, error) 
 				return nil, errx.Wrap(err, "load gateway tls certificate")
 			}
 			opts = append(opts, grpc.WithTransportCredentials(transportCredentials))
+		} else if len(s.config.certificatePEM) != 0 {
+			roots, err := x509.SystemCertPool()
+			if err != nil {
+				roots = x509.NewCertPool()
+			}
+			if !roots.AppendCertsFromPEM(s.config.certificatePEM) {
+				return nil, errx.New("load gateway tls certificate pem")
+			}
+			opts = append(opts, grpc.WithTransportCredentials(credentials.NewTLS(&tls.Config{
+				MinVersion: tls.VersionTLS12,
+				RootCAs:    roots,
+				ServerName: serverName,
+			})))
 		} else {
 			opts = append(opts, grpc.WithTransportCredentials(credentials.NewTLS(&tls.Config{
 				MinVersion: tls.VersionTLS12,
@@ -36,5 +50,5 @@ func (s *Server) gatewayDialOptions(endpoint string) ([]grpc.DialOption, error) 
 }
 
 func (s *Server) usesTLS() bool {
-	return s.config.certFile != "" || s.config.tlsConfig != nil
+	return s.config.certFile != "" || s.config.certificate != nil || s.config.tlsConfig != nil
 }

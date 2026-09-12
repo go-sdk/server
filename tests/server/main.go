@@ -15,6 +15,7 @@ import (
 func main() {
 	_, err := standard.New(
 		standard.WithAddress(":8080"),
+		standard.WithReflection(),
 		standard.WithGRPCRegister(func(registrar grpc.ServiceRegistrar) {
 			corev1.RegisterUserServiceServer(registrar, &userService{})
 			bizv1.RegisterBillServiceServer(registrar, &billService{})

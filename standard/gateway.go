@@ -3,10 +3,28 @@ package standard
 import (
 	"context"
 	"net"
+	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/go-sdk/core/errx"
+	"google.golang.org/grpc/metadata"
 )
+
+func gatewayRequestMetadata(ctx context.Context, request *http.Request) metadata.MD {
+	requestContext := FromContext(ctx)
+	pairs := []string{
+		requestIDMetadataKey, requestContext.RequestID(),
+		clientIPMetadataKey, requestContext.ClientIP(),
+		contentTypeMetadataKey, request.Header.Get("Content-Type"),
+		userAgentMetadataKey, request.UserAgent(),
+		depthMetadataKey, strconv.Itoa(requestContext.Depth() + 1),
+	}
+	if requestContext.authorization != "" {
+		pairs = append(pairs, "authorization", requestContext.authorization)
+	}
+	return metadata.Pairs(pairs...)
+}
 
 func (s *Server) registerGateway(ctx context.Context, listener net.Listener) error {
 	if len(s.config.gatewayRegisters) == 0 {

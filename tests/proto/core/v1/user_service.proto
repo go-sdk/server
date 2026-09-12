@@ -11,7 +11,7 @@ import "options.proto";
 service UserService {
   // 健康检查
   rpc Health(common.Empty) returns (common.Empty) {
-    option (options.method) = {
+    option (server.options.method) = {
       skip_auth: true
       skip_log: true
     };

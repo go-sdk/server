@@ -20,7 +20,7 @@ lint:
     PACKAGE_VERSION_SUFFIX:
       - options/options.proto
       - tests/proto/common
-    # options 模块即包，文件位于模块根目录
+    # proto 包为 server.options，不含模块目录，文件位于模块根
     PACKAGE_DIRECTORY_MATCH:
       - options/options.proto
 breaking:

@@ -34,7 +34,7 @@ generate:				##@ Lint & Generate proto files.
 .PHONY: lint
 lint: tidy				##@ Lint all packages.
 	@if command -v golangci-lint >/dev/null 2>&1; then \
-		golangci-lint run --timeout 5m; \
+		golangci-lint run --timeout 5m && \
 		echo "done."; \
 	else \
 		echo "golangci-lint is not installed. Please install it from https://github.com/golangci/golangci-lint"; \

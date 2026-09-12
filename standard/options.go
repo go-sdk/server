@@ -32,6 +32,8 @@ type config struct {
 	gracefulTimeout    time.Duration
 	certFile           string
 	keyFile            string
+	certificate        *tls.Certificate
+	certificatePEM     []byte
 	tlsConfig          *tls.Config
 	gatewayEndpoint    string
 	gatewayServerName  string
@@ -44,6 +46,8 @@ type config struct {
 	grpcRegisters      []GRPCRegisterFunc
 	gatewayRegisters   []GatewayRegisterFunc
 	logger             grpclogging.Logger
+	jwtSecret          []byte
+	reflection         bool
 }
 
 func defaultConfig() config {
@@ -59,6 +63,9 @@ func (c config) validate() error {
 	}
 	if (c.certFile == "") != (c.keyFile == "") {
 		return errx.New("certificate and private key files must be specified together")
+	}
+	if c.certFile != "" && c.certificate != nil {
+		return errx.New("certificate file and pem certificate must not be specified together")
 	}
 	for _, register := range c.grpcRegisters {
 		if register == nil {
@@ -93,6 +100,22 @@ func WithGracefulTimeout(timeout time.Duration) Option {
 
 func WithCertificate(certFile, keyFile string) Option {
 	return func(c *config) error { c.certFile, c.keyFile = certFile, keyFile; return nil }
+}
+
+// WithCertificatePEM 使用内存中的 PEM 证书和私钥启用 TLS。
+func WithCertificatePEM(certPEM, keyPEM []byte) Option {
+	return func(c *config) error {
+		if len(certPEM) == 0 || len(keyPEM) == 0 {
+			return errx.New("certificate and private key pem must not be empty")
+		}
+		certificate, err := tls.X509KeyPair(certPEM, keyPEM)
+		if err != nil {
+			return errx.Wrap(err, "parse certificate pem")
+		}
+		c.certificate = &certificate
+		c.certificatePEM = append([]byte(nil), certPEM...)
+		return nil
+	}
 }
 
 func WithTLSConfig(tlsConfig *tls.Config) Option {
@@ -163,6 +186,25 @@ func WithLogger(logger grpclogging.Logger) Option {
 			return errx.New("logger must not be nil")
 		}
 		c.logger = logger
+		return nil
+	}
+}
+
+// WithJWTSecret 使用 HS256 密钥启用 JWT 鉴权。
+func WithJWTSecret(secret []byte) Option {
+	return func(c *config) error {
+		if len(secret) == 0 {
+			return errx.New("jwt secret must not be empty")
+		}
+		c.jwtSecret = append([]byte(nil), secret...)
+		return nil
+	}
+}
+
+// WithReflection 启用标准 gRPC Reflection Service。
+func WithReflection() Option {
+	return func(c *config) error {
+		c.reflection = true
 		return nil
 	}
 }

@@ -7,8 +7,8 @@ managed:
     # 默认前缀：tests/proto 生成到 tests/pb
     - file_option: go_package_prefix
       value: github.com/go-sdk/server/tests/pb
-    # options 模块生成到 options（后置规则覆盖默认前缀，path 相对模块根）
-    - file_option: go_package_prefix
+    # options 模块生成到 options，保持 Go 导入路径不变（后置规则覆盖默认前缀，path 相对模块根）
+    - file_option: go_package
       value: github.com/go-sdk/server/options
       path: options.proto
   disable:

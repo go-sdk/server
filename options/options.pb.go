@@ -174,7 +174,7 @@ var file_options_proto_extTypes = []protoimpl.ExtensionInfo{
 		ExtendedType:  (*descriptorpb.MethodOptions)(nil),
 		ExtensionType: (*MethodOptions)(nil),
 		Field:         202609129,
-		Name:          "options.method",
+		Name:          "server.options.method",
 		Tag:           "bytes,202609129,opt,name=method",
 		Filename:      "options.proto",
 	},
@@ -182,7 +182,7 @@ var file_options_proto_extTypes = []protoimpl.ExtensionInfo{
 		ExtendedType:  (*descriptorpb.MessageOptions)(nil),
 		ExtensionType: (*MessageOptions)(nil),
 		Field:         202609128,
-		Name:          "options.message",
+		Name:          "server.options.message",
 		Tag:           "bytes,202609128,opt,name=message",
 		Filename:      "options.proto",
 	},
@@ -190,7 +190,7 @@ var file_options_proto_extTypes = []protoimpl.ExtensionInfo{
 		ExtendedType:  (*descriptorpb.FieldOptions)(nil),
 		ExtensionType: (*FieldOptions)(nil),
 		Field:         202609127,
-		Name:          "options.field",
+		Name:          "server.options.field",
 		Tag:           "bytes,202609127,opt,name=field",
 		Filename:      "options.proto",
 	},
@@ -198,19 +198,19 @@ var file_options_proto_extTypes = []protoimpl.ExtensionInfo{
 
 // Extension fields to descriptorpb.MethodOptions.
 var (
-	// optional options.MethodOptions method = 202609129;
+	// optional server.options.MethodOptions method = 202609129;
 	E_Method = &file_options_proto_extTypes[0]
 )
 
 // Extension fields to descriptorpb.MessageOptions.
 var (
-	// optional options.MessageOptions message = 202609128;
+	// optional server.options.MessageOptions message = 202609128;
 	E_Message = &file_options_proto_extTypes[1]
 )
 
 // Extension fields to descriptorpb.FieldOptions.
 var (
-	// optional options.FieldOptions field = 202609127;
+	// optional server.options.FieldOptions field = 202609127;
 	E_Field = &file_options_proto_extTypes[2]
 )
 
@@ -218,18 +218,18 @@ var File_options_proto protoreflect.FileDescriptor
 
 const file_options_proto_rawDesc = "" +
 	"\n" +
-	"\roptions.proto\x12\aoptions\x1a google/protobuf/descriptor.proto\"i\n" +
+	"\roptions.proto\x12\x0eserver.options\x1a google/protobuf/descriptor.proto\"i\n" +
 	"\rMethodOptions\x12\x1b\n" +
 	"\tskip_auth\x18\x01 \x01(\bR\bskipAuth\x12 \n" +
 	"\vpermissions\x18\x02 \x03(\tR\vpermissions\x12\x19\n" +
 	"\bskip_log\x18\x03 \x01(\bR\askipLog\"\x10\n" +
 	"\x0eMessageOptions\",\n" +
 	"\fFieldOptions\x12\x1c\n" +
-	"\tsensitive\x18\x01 \x01(\bR\tsensitive:Q\n" +
-	"\x06method\x12\x1e.google.protobuf.MethodOptions\x18\xe9\xa3\xce` \x01(\v2\x16.options.MethodOptionsR\x06method:U\n" +
-	"\amessage\x12\x1f.google.protobuf.MessageOptions\x18\xe8\xa3\xce` \x01(\v2\x17.options.MessageOptionsR\amessage:M\n" +
-	"\x05field\x12\x1d.google.protobuf.FieldOptions\x18\xe7\xa3\xce` \x01(\v2\x15.options.FieldOptionsR\x05fieldBy\n" +
-	"\vcom.optionsB\fOptionsProtoP\x01Z github.com/go-sdk/server/options\xa2\x02\x03OXX\xaa\x02\aOptions\xca\x02\aOptions\xe2\x02\x13Options\\GPBMetadata\xea\x02\aOptionsb\x06proto3"
+	"\tsensitive\x18\x01 \x01(\bR\tsensitive:X\n" +
+	"\x06method\x12\x1e.google.protobuf.MethodOptions\x18\xe9\xa3\xce` \x01(\v2\x1d.server.options.MethodOptionsR\x06method:\\\n" +
+	"\amessage\x12\x1f.google.protobuf.MessageOptions\x18\xe8\xa3\xce` \x01(\v2\x1e.server.options.MessageOptionsR\amessage:T\n" +
+	"\x05field\x12\x1d.google.protobuf.FieldOptions\x18\xe7\xa3\xce` \x01(\v2\x1c.server.options.FieldOptionsR\x05fieldB\x9d\x01\n" +
+	"\x12com.server.optionsB\fOptionsProtoP\x01Z github.com/go-sdk/server/options\xa2\x02\x03SOX\xaa\x02\x0eServer.Options\xca\x02\x0eServer\\Options\xe2\x02\x1aServer\\Options\\GPBMetadata\xea\x02\x0fServer::Optionsb\x06proto3"
 
 var (
 	file_options_proto_rawDescOnce sync.Once
@@ -245,20 +245,20 @@ func file_options_proto_rawDescGZIP() []byte {
 
 var file_options_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
 var file_options_proto_goTypes = []any{
-	(*MethodOptions)(nil),               // 0: options.MethodOptions
-	(*MessageOptions)(nil),              // 1: options.MessageOptions
-	(*FieldOptions)(nil),                // 2: options.FieldOptions
+	(*MethodOptions)(nil),               // 0: server.options.MethodOptions
+	(*MessageOptions)(nil),              // 1: server.options.MessageOptions
+	(*FieldOptions)(nil),                // 2: server.options.FieldOptions
 	(*descriptorpb.MethodOptions)(nil),  // 3: google.protobuf.MethodOptions
 	(*descriptorpb.MessageOptions)(nil), // 4: google.protobuf.MessageOptions
 	(*descriptorpb.FieldOptions)(nil),   // 5: google.protobuf.FieldOptions
 }
 var file_options_proto_depIdxs = []int32{
-	3, // 0: options.method:extendee -> google.protobuf.MethodOptions
-	4, // 1: options.message:extendee -> google.protobuf.MessageOptions
-	5, // 2: options.field:extendee -> google.protobuf.FieldOptions
-	0, // 3: options.method:type_name -> options.MethodOptions
-	1, // 4: options.message:type_name -> options.MessageOptions
-	2, // 5: options.field:type_name -> options.FieldOptions
+	3, // 0: server.options.method:extendee -> google.protobuf.MethodOptions
+	4, // 1: server.options.message:extendee -> google.protobuf.MessageOptions
+	5, // 2: server.options.field:extendee -> google.protobuf.FieldOptions
+	0, // 3: server.options.method:type_name -> server.options.MethodOptions
+	1, // 4: server.options.message:type_name -> server.options.MessageOptions
+	2, // 5: server.options.field:type_name -> server.options.FieldOptions
 	6, // [6:6] is the sub-list for method output_type
 	6, // [6:6] is the sub-list for method input_type
 	3, // [3:6] is the sub-list for extension type_name

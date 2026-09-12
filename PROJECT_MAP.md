@@ -8,21 +8,33 @@
 
 ```text
 server/
-├── options/                        公共 Protobuf 方法、消息和字段选项
+├── options/                        公共 Protobuf 方法、消息和字段选项（proto 包为 server.options）
 │   ├── options.proto               认证、日志和敏感字段描述
 │   └── options.pb.go               生成的 Go 扩展定义
 ├── standard/                       标准单端口 gRPC/Gateway Server
 │   ├── logger.go                   core/logx 的 gRPC logging 适配
+│   ├── client.go                   gRPC ClientConn 创建和 lifex 生命周期注册
+│   ├── client_options.go           Client 明文、TLS 和 middleware Options
+│   ├── client_middleware.go        Client 上下文透传和 Payload Logging
+│   ├── context.go                  Request ID、JWT Claims 和调用深度
 │   ├── gateway.go                  Gateway 注册和回连 endpoint 解析
 │   ├── lifecycle.go                lifex 启动、异常退出和优雅停止
-│   ├── middleware.go               Request ID、Logging、Protovalidate 和 Recovery
+│   ├── access_log.go               HTTP 访问日志
+│   ├── auth.go                     JWT 鉴权
+│   ├── method_options.go           方法选项解析
+│   ├── middleware.go               公共 middleware 类型和 Protovalidate
 │   ├── options.go                  Server 初始化 Options 和注册函数类型
+│   ├── payload_logging.go          gRPC 请求和响应 Payload Logging
+│   ├── recovery.go                 HTTP 与 gRPC Recovery
+│   ├── request_context.go          Request ID 和请求上下文
 │   ├── server.go                   Server 构造、gmux 和额外路由注册
-│   └── tls.go                      TLS 判断和 Gateway 客户端凭据
+│   ├── tls.go                      TLS 判断和 Gateway 客户端凭据
+│   └── testserver/                 基于 bufconn 的标准测试服务器
+│       └── server.go               测试 Server、ClientConn 和自动清理
 ├── tests/
 │   ├── pb/                         由 Buf 生成的测试及示例代码
 │   ├── proto/                      带 google.api.http 和 buf.validate 的示例协议
-│   └── server/main.go              标准 Server 使用示例
+│   └── server/                     标准 Server 示例及业务服务单元测试
 ├── AGENTS.md                       仓库协作与修改规范
 ├── PROJECT_MAP.md                  项目结构与调用关系
 ├── README.md                       使用说明与公共行为
@@ -67,10 +79,12 @@ Gateway 使用生成代码中的 `Register*HandlerFromEndpoint`，因此注解�
 
 ### Middleware
 
-- Request ID 在 HTTP Header、HTTP context、gRPC metadata 和业务 context 间传递，并注入 `core/logx` context logger。
-- Logging 只记录请求元数据、状态和耗时，不记录 payload、认证头和完整 metadata；方法设置 `options.method.skip_log` 时跳过 gRPC 访问日志。
+- Request Context 在 HTTP Header、HTTP context、gRPC metadata 和业务 context 间传递 Request ID、调用深度与安全的请求信息，并注入 `standard.Context` 和 `core/logx`。
+- Logging 记录 gRPC 调用元数据；Payload Logging 分别记录请求和响应，敏感字段以及设置 `server.options.method.skip_log` 的完整 payload 使用 `***` 替代。
+- JWT Auth 使用 Option 注入的 HS256 密钥验证 Bearer Token，验证后的 Claims 写入 `standard.Context`；设置 `server.options.method.skip_auth` 的 RPC 跳过鉴权。
 - Protovalidate 执行 `buf.validate` 规则，对原生 gRPC 和注解生成的 Gateway 请求生效。
 - Recovery 位于 gRPC interceptor 链最内层，并在 HTTP 层保护额外 Handler。
+- Health Service 默认启用且不鉴权、不记录 payload；Reflection 仅在设置 Option 后启用。
 
 ### 生命周期
 
@@ -80,11 +94,25 @@ Gateway 使用生成代码中的 `Register*HandlerFromEndpoint`，因此注解�
 - `lifex.Wait` 收到 SIGINT、SIGTERM 或主动退出后调用 `Stop`；`Stop` 并行排空 HTTP 与 gRPC 请求，HTTP 排空后关闭 Gateway ClientConn，超时后强制停止。
 - Server 只能启动一次，`Stop` 可以重复调用。
 
+## gRPC Client
+
+- `NewClient` 创建默认明文的 `grpc.ClientConn`，并通过 `lifex.OnDeinit` 注册关闭函数。
+- Client 可通过根证书文件、根证书 PEM 或自定义 `tls.Config` 启用 TLS。
+- 默认 Client interceptor 依次执行上下文透传、Logging、Payload Logging 和自定义 interceptor。
+- 出站请求透传 Request ID 和内部保存的 Bearer Token，并将 depth 加一；认证原文不通过公共 Context API 暴露。
+
+## 测试服务器
+
+- `standard/testserver.New` 使用 `bufconn` 启动真实 `standard.Server`，并创建指向该服务且经过默认 Client interceptor 的 `grpc.ClientConn`。
+- 测试通过 `Conn` 创建生成代码中的 gRPC Client，确保业务调用经过鉴权、校验、日志和 Recovery 等真实 interceptor。
+- 测试结束时自动关闭 ClientConn、Server 和 Listener；测试场景不注册依赖 TCP endpoint 的 Gateway。
+
 ## 主要依赖关系
 
 ```text
 standard ──> gmux
          ├─> core/errx、core/lifex
+         ├─> golang-jwt/jwt
          ├─> grpc-go
          ├─> grpc-gateway
          ├─> go-grpc-middleware
@@ -97,4 +125,5 @@ standard ──> gmux
 - `make prepare` 安装 Protobuf 生成插件；`make generate` 使用 Buf lint 并重新生成 `options` 和 `tests/pb`。
 - `make lint` 会先执行 `go mod tidy`，然后运行 golangci-lint。
 - `make test` 会运行竞态检测测试，必须得到用户明确授权后执行。
+- `standard` 使用 `bufconn` 验证真实 gRPC Server、Health 和 Client 上下文透传，不注册需要 TCP endpoint 的 Gateway。
 - `go build ./...` 只证明当前平台纯编译通过，不证明网络、TLS、gmux 分流或优雅停止的运行时行为。

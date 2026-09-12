@@ -17,7 +17,7 @@
 - 遵循现有包划分和代码风格，优先局部修改，不引入缺少明确收益的依赖或抽象。
 - 代码注释、维护文档和面向使用者的说明统一使用简体中文。
 - 注释只描述最终设计意图、业务含义和关键约束，不记录修改历史，不复述代码。
-- 日志和错误不得包含证书私钥、认证信息、请求体或完整 metadata。
+- 日志和错误不得包含证书私钥、认证信息、JWT 原文或完整 metadata；Payload Logging 必须按字段选项脱敏。
 
 ## 设计约束
 
@@ -26,11 +26,14 @@
 - HTTP 和 gRPC 通过 gmux 共用同一个真实 Listener；HTTP 使用 `runtime.ServeMux`，gRPC 使用 gmux 返回的虚拟 Listener。
 - 只有上传、下载或 Webhook 等无法合理映射为 RPC 的接口才使用 `Server.HandlePath` 注册。
 - 不暴露底层 `runtime.ServeMux`、`http.Server` 或 `grpc.Server`，服务和 Gateway 注册通过 Options 注入。
-- 默认 interceptor 顺序为 Request ID、Logging、Protovalidate、自定义 interceptor、Recovery。
+- Server 默认 interceptor 顺序为 Request Context、Logging、Payload Logging、JWT Auth、Protovalidate、自定义 interceptor、Recovery。
+- Client 默认使用明文连接，并通过 Option 启用 TLS；默认 interceptor 负责请求上下文透传、Logging 和 Payload Logging。
+- `standard.NewContext` 和 `standard.FromContext` 统一管理 Request ID、JWT Claims、调用深度及安全的请求信息；认证原文仅供内部透传。
+- JWT 鉴权仅在注入 HS256 密钥后启用；Health Service 固定跳过鉴权和 Payload Logging，Reflection 默认关闭。
 - Listener 非空时优先于 Address。Server 只能启动一次，`Stop` 必须支持重复调用并使用配置的超时完成优雅停止。
 - Server 通过 `core/lifex` 注册启动和停止函数，由 `lifex.Init`、`lifex.Wait` 和 `lifex.Shutdown` 统一管理进程生命周期。
 - 错误创建、包装和判断统一使用 `core/errx`；错误文本和日志消息使用小写字母开头。
-- TLS 证书和私钥路径通过 Option 注入；不得读取、输出或保存私钥内容到代码和日志。
+- TLS 证书和私钥通过文件路径或 PEM Option 注入；不得输出私钥内容到代码和日志。
 
 ## 验证边界
 
