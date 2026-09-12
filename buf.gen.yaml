@@ -1,0 +1,31 @@
+# yaml-language-server: $schema=https://www.schemastore.org/buf.gen.json
+
+version: v2
+managed:
+  enabled: true
+  override:
+    # 默认前缀：tests/proto 生成到 tests/pb
+    - file_option: go_package_prefix
+      value: github.com/go-sdk/server/tests/pb
+    # options 模块生成到 options（后置规则覆盖默认前缀，path 相对模块根）
+    - file_option: go_package_prefix
+      value: github.com/go-sdk/server/options
+      path: options.proto
+  disable:
+    - module: buf.build/googleapis/googleapis
+    - module: buf.build/bufbuild/protovalidate
+plugins:
+  # paths=import + module：输出路径由 go_package 推导（去掉 module 前缀），
+  # go_package 与物理目录一致，两个模块自动生成到各自目录
+  - local: protoc-gen-go
+    out: .
+    opt:
+      - module=github.com/go-sdk/server
+  - local: protoc-gen-go-grpc
+    out: .
+    opt:
+      - module=github.com/go-sdk/server
+  - local: protoc-gen-grpc-gateway
+    out: .
+    opt:
+      - module=github.com/go-sdk/server

@@ -1,0 +1,25 @@
+syntax = "proto3";
+
+package biz.v1;
+
+import "common/common.proto";
+
+// 账单
+message Bill {
+  // Id
+  string id = 1;
+  // 金额
+  double amount = 2;
+}
+
+message ListBillReq {
+  // 分页
+  common.Paging paging = 1;
+}
+
+message ListBillResp {
+  // 分页
+  common.Paging paging = 1;
+  // 账单列表
+  repeated biz.v1.Bill records = 2;
+}

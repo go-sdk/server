@@ -1,0 +1,36 @@
+syntax = "proto3";
+
+package options;
+
+import "google/protobuf/descriptor.proto";
+
+extend google.protobuf.MethodOptions {
+  MethodOptions method = 202609129;
+}
+
+// 方法选项
+message MethodOptions {
+  // 是否跳过认证
+  bool skip_auth = 1;
+  // 权限标识
+  repeated string permissions = 2;
+  // 是否跳过日志
+  bool skip_log = 3;
+}
+
+extend google.protobuf.MessageOptions {
+  MessageOptions message = 202609128;
+}
+
+// 消息选项
+message MessageOptions {}
+
+extend google.protobuf.FieldOptions {
+  FieldOptions field = 202609127;
+}
+
+// 字段选项
+message FieldOptions {
+  // 是否敏感字段
+  bool sensitive = 1;
+}

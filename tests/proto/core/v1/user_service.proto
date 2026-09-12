@@ -1,0 +1,26 @@
+syntax = "proto3";
+
+package core.v1;
+
+import "common/common.proto";
+import "core/v1/user.proto";
+import "google/api/annotations.proto";
+import "options.proto";
+
+// 用户服务
+service UserService {
+  // 健康检查
+  rpc Health(common.Empty) returns (common.Empty) {
+    option (options.method) = {
+      skip_auth: true
+      skip_log: true
+    };
+  }
+  // 创建
+  rpc Create(core.v1.CreateUserReq) returns (common.Id) {
+    option (google.api.http) = {
+      post: "/core/v1/users"
+      body: "*"
+    };
+  }
+}

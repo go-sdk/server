@@ -1,0 +1,37 @@
+syntax = "proto3";
+
+package common;
+
+import "google/api/field_behavior.proto";
+import "google/protobuf/timestamp.proto";
+
+// 空消息
+message Empty {}
+
+// Id
+message Id {
+  // Id
+  string id = 1;
+}
+
+// 分页
+message Paging {
+  // 当前页
+  int32 page = 1;
+  // 每页大小
+  int32 page_size = 2;
+  // 总条数
+  int32 total = 3 [(google.api.field_behavior) = OUTPUT_ONLY];
+}
+
+// 元数据
+message Metadata {
+  // 创建人
+  string created_by = 1;
+  // 创建时间
+  google.protobuf.Timestamp created_at = 2;
+  // 更新人
+  string updated_by = 3;
+  // 更新时间
+  google.protobuf.Timestamp updated_at = 4;
+}

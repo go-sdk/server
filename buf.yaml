@@ -1,0 +1,28 @@
+# yaml-language-server: $schema=https://www.schemastore.org/buf.json
+
+version: v2
+modules:
+  - path: options
+  - path: tests/proto
+deps:
+  - buf.build/googleapis/googleapis
+  - buf.build/bufbuild/protovalidate
+lint:
+  use:
+    - STANDARD
+  except:
+    # 请求/响应消息统一使用 Req/Resp 后缀
+    - RPC_REQUEST_STANDARD_NAME
+    - RPC_RESPONSE_STANDARD_NAME
+    # 请求/响应可以使用相同的名称
+    - RPC_REQUEST_RESPONSE_UNIQUE
+  ignore_only:
+    PACKAGE_VERSION_SUFFIX:
+      - options/options.proto
+      - tests/proto/common
+    # options 模块即包，文件位于模块根目录
+    PACKAGE_DIRECTORY_MATCH:
+      - options/options.proto
+breaking:
+  use:
+    - FILE
