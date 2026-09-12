@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 
+	"github.com/go-sdk/core/logx"
 	"github.com/go-sdk/core/seq"
 
 	bizv1 "github.com/go-sdk/server/tests/pb/biz/v1"
@@ -18,8 +19,10 @@ func (s *userService) Health(_ context.Context, _ *common.Empty) (*common.Empty,
 	return &common.Empty{}, nil
 }
 
-func (s *userService) Create(_ context.Context, _ *corev1.CreateUserReq) (*common.Id, error) {
-	return &common.Id{Id: seq.NextID()}, nil
+func (s *userService) Create(ctx context.Context, _ *corev1.CreateUserReq) (*common.Id, error) {
+	id := seq.NextID()
+	logx.Ctx(ctx).Info().Msgf("create user %s", id)
+	return &common.Id{Id: id}, nil
 }
 
 type billService struct {
