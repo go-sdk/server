@@ -3,8 +3,10 @@
 # Buf Workspace v2：单文件统一管理多个模块的依赖、lint 与兼容性检查
 version: v2
 modules:
-  # 公共方法/消息/字段选项模块，proto 包为 server.options，仅对外提供扩展定义
+  # 公共方法/消息/字段选项模块，proto 包为 server.options，仅对外提供扩展定义；
+  # 命名对应 BSR 仓库，打 tag 时由 CI 推送
   - path: options
+    name: buf.build/go-sdk/server
   # 测试与示例协议模块，包含 google.api.http 注解和 buf.validate 规则
   - path: tests/proto
 # 远程依赖，具体版本由 buf.lock 锁定；生成时下载到本地镜像
