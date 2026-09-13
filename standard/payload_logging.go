@@ -93,7 +93,7 @@ func logGRPCResponse(ctx context.Context, side, method string, payload any, err 
 		Str("grpc_method", method).
 		Str("status_code", status.Code(err).String()).
 		Int("content_length", size).
-		Dur("duration", duration).
+		Dur("duration", duration.Truncate(time.Millisecond)).
 		Interface("payload", content).
 		Msg("grpc response")
 }

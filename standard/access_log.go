@@ -49,7 +49,7 @@ func httpAccessLogMiddleware(next http.Handler) http.Handler {
 			Str("client_ip", remoteIP(r.RemoteAddr)).
 			Str("content_type", r.Header.Get("Content-Type")).
 			Str("user_agent", r.UserAgent()).
-			Dur("duration", time.Since(startedAt)).
+			Dur("duration", time.Since(startedAt).Truncate(time.Millisecond)).
 			Msg("http request completed")
 	})
 }
