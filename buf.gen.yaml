@@ -48,7 +48,7 @@ plugins:
   # protoc-gen-openapiv2：根据 google.api.http 注解生成 Swagger 2.0 文档，
   # 不支持 module 参数；strategy: all 使全部 proto 在一次插件调用中处理，
   # 否则默认按目录分次调用，allow_merge 会产出多个同名文件被丢弃；
-  # allow_merge 将全部 proto 合并为单文件 openapi.yaml，
+  # allow_merge 将全部 proto 合并为单文件 openapi.swagger.yaml，
   # openapi_naming_strategy=fqn 使用全限定名避免跨包同名冲突，
   # disable_default_errors 因 Gateway 失败响应为自定义结构（domain/reason），
   # 枚举数字输出与 protoc-gen-go-json 保持一致，YAML 便于 diff 与版本控制

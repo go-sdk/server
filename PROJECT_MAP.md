@@ -10,7 +10,8 @@
 server/
 ├── options/                        公共 Protobuf 方法、消息和字段选项（proto 包为 server.options）
 │   ├── options.proto               认证、日志和敏感字段描述
-│   └── options.pb.go               生成的 Go 扩展定义
+│   ├── options.pb.go               生成的 Go 扩展定义
+│   └── options.pb.json.go          生成的 JSON 编解码方法
 ├── standard/                       标准单端口 gRPC/Gateway Server
 │   ├── logger.go                   core/logx 的 gRPC logging 适配
 │   ├── client.go                   gRPC ClientConn 创建和 lifex 生命周期注册
@@ -36,7 +37,7 @@ server/
 │       └── server.go               测试 Server、ClientConn 和自动清理
 ├── tests/
 │   ├── pb/                         由 Buf 生成的测试及示例代码
-│   ├── openapi/                    由 Buf 生成的 Swagger 2.0 文档（*.swagger.json）
+│   ├── openapi/                    由 Buf 生成的 Swagger 2.0 文档（openapi.swagger.yaml）
 │   ├── proto/                      带 google.api.http 和 buf.validate 的示例协议
 │   └── server/                     标准 Server 示例及业务服务单元测试
 ├── AGENTS.md                       仓库协作与修改规范
