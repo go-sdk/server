@@ -10,6 +10,9 @@ message Bill {
   string id = 1;
   // 金额
   double amount = 2;
+
+  // 元数据
+  common.Metadata metadata = 15;
 }
 
 message ListBillReq {

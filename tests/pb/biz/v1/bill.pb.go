@@ -28,7 +28,9 @@ type Bill struct {
 	// Id
 	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	// 金额
-	Amount        float64 `protobuf:"fixed64,2,opt,name=amount,proto3" json:"amount,omitempty"`
+	Amount float64 `protobuf:"fixed64,2,opt,name=amount,proto3" json:"amount,omitempty"`
+	// 元数据
+	Metadata      *common.Metadata `protobuf:"bytes,15,opt,name=metadata,proto3" json:"metadata,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -75,6 +77,13 @@ func (x *Bill) GetAmount() float64 {
 		return x.Amount
 	}
 	return 0
+}
+
+func (x *Bill) GetMetadata() *common.Metadata {
+	if x != nil {
+		return x.Metadata
+	}
+	return nil
 }
 
 type ListBillReq struct {
@@ -180,10 +189,11 @@ var File_biz_v1_bill_proto protoreflect.FileDescriptor
 
 const file_biz_v1_bill_proto_rawDesc = "" +
 	"\n" +
-	"\x11biz/v1/bill.proto\x12\x06biz.v1\x1a\x13common/common.proto\".\n" +
+	"\x11biz/v1/bill.proto\x12\x06biz.v1\x1a\x13common/common.proto\"\\\n" +
 	"\x04Bill\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x16\n" +
-	"\x06amount\x18\x02 \x01(\x01R\x06amount\"5\n" +
+	"\x06amount\x18\x02 \x01(\x01R\x06amount\x12,\n" +
+	"\bmetadata\x18\x0f \x01(\v2\x10.common.MetadataR\bmetadata\"5\n" +
 	"\vListBillReq\x12&\n" +
 	"\x06paging\x18\x01 \x01(\v2\x0e.common.PagingR\x06paging\"^\n" +
 	"\fListBillResp\x12&\n" +
@@ -206,20 +216,22 @@ func file_biz_v1_bill_proto_rawDescGZIP() []byte {
 
 var file_biz_v1_bill_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
 var file_biz_v1_bill_proto_goTypes = []any{
-	(*Bill)(nil),          // 0: biz.v1.Bill
-	(*ListBillReq)(nil),   // 1: biz.v1.ListBillReq
-	(*ListBillResp)(nil),  // 2: biz.v1.ListBillResp
-	(*common.Paging)(nil), // 3: common.Paging
+	(*Bill)(nil),            // 0: biz.v1.Bill
+	(*ListBillReq)(nil),     // 1: biz.v1.ListBillReq
+	(*ListBillResp)(nil),    // 2: biz.v1.ListBillResp
+	(*common.Metadata)(nil), // 3: common.Metadata
+	(*common.Paging)(nil),   // 4: common.Paging
 }
 var file_biz_v1_bill_proto_depIdxs = []int32{
-	3, // 0: biz.v1.ListBillReq.paging:type_name -> common.Paging
-	3, // 1: biz.v1.ListBillResp.paging:type_name -> common.Paging
-	0, // 2: biz.v1.ListBillResp.records:type_name -> biz.v1.Bill
-	3, // [3:3] is the sub-list for method output_type
-	3, // [3:3] is the sub-list for method input_type
-	3, // [3:3] is the sub-list for extension type_name
-	3, // [3:3] is the sub-list for extension extendee
-	0, // [0:3] is the sub-list for field type_name
+	3, // 0: biz.v1.Bill.metadata:type_name -> common.Metadata
+	4, // 1: biz.v1.ListBillReq.paging:type_name -> common.Paging
+	4, // 2: biz.v1.ListBillResp.paging:type_name -> common.Paging
+	0, // 3: biz.v1.ListBillResp.records:type_name -> biz.v1.Bill
+	4, // [4:4] is the sub-list for method output_type
+	4, // [4:4] is the sub-list for method input_type
+	4, // [4:4] is the sub-list for extension type_name
+	4, // [4:4] is the sub-list for extension extendee
+	0, // [0:4] is the sub-list for field type_name
 }
 
 func init() { file_biz_v1_bill_proto_init() }

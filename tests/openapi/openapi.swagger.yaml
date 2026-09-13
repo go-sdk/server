@@ -78,6 +78,9 @@ definitions:
         type: number
         format: double
         title: 金额
+      metadata:
+        $ref: '#/definitions/common.Metadata'
+        title: 元数据
     title: 账单
   biz.v1.ListBillResp:
     type: object
@@ -98,6 +101,24 @@ definitions:
         type: string
         title: Id
     title: Id
+  common.Metadata:
+    type: object
+    properties:
+      createdBy:
+        type: string
+        title: 创建人
+      createdAt:
+        type: string
+        format: date-time
+        title: 创建时间
+      updatedBy:
+        type: string
+        title: 更新人
+      updatedAt:
+        type: string
+        format: date-time
+        title: 更新时间
+    title: 元数据
   common.Paging:
     type: object
     properties:

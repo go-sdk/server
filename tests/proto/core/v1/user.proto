@@ -3,6 +3,7 @@ syntax = "proto3";
 package core.v1;
 
 import "buf/validate/validate.proto";
+import "common/common.proto";
 import "options.proto";
 
 // 用户
@@ -13,6 +14,9 @@ message User {
   string name = 2;
   // 邮箱
   string email = 3 [(server.options.field).sensitive = true];
+
+  // 元数据
+  common.Metadata metadata = 15;
 }
 
 message CreateUserReq {
