@@ -66,4 +66,4 @@ jobs:
           token: ${{ secrets.BUF_API_TOKEN }}
           setup_only: true
       - name: Push options module
-        run: buf push options --label "$GITHUB_REF_NAME" --create-label
+        run: buf push options --create --label "$GITHUB_REF_NAME"
