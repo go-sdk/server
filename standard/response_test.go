@@ -48,6 +48,19 @@ func TestRespErrorIsImmutable(t *testing.T) {
 	}
 }
 
+func TestRespErrorWithMessageIsImmutable(t *testing.T) {
+	changed := ErrInvalidParam.WithMessage("").WithHTTPStatus(422)
+	if changed.Error() != "" {
+		t.Fatalf("unexpected changed message: %q", changed.Error())
+	}
+	if ErrInvalidParam.Error() != "invalid parameter" {
+		t.Fatalf("built-in error message was changed: %q", ErrInvalidParam.Error())
+	}
+	if ErrInvalidParam.httpStatus != 0 || changed.httpStatus != 422 {
+		t.Fatal("http status override must not change the built-in error")
+	}
+}
+
 func TestGatewayResponseRewriterFormatsError(t *testing.T) {
 	badRequest := &errdetails.BadRequest{FieldViolations: []*errdetails.BadRequest_FieldViolation{{
 		Field:       "name",

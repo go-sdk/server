@@ -17,7 +17,7 @@ func TestErrorConverterConvertsWrappedError(t *testing.T) {
 		if !errx.Is(err, sql.ErrNoRows) {
 			return RespError{}, false
 		}
-		return NewError(codes.NotFound, "record not found").
+		return ErrNotFound.WithMessage("record not found").
 			WithDomainReason("RECORD_NOT_FOUND", "record.not_found"), true
 	})
 
@@ -37,12 +37,12 @@ func TestErrorConverterConvertsWrappedError(t *testing.T) {
 
 func TestErrorConverterUsesFirstMatch(t *testing.T) {
 	first := ErrorConvertFunc(func(error) (RespError, bool) {
-		return NewError(codes.NotFound, "first"), true
+		return ErrNotFound.WithMessage("first"), true
 	})
 	secondCalled := false
 	second := ErrorConvertFunc(func(error) (RespError, bool) {
 		secondCalled = true
-		return NewError(codes.Internal, "second"), true
+		return ErrInternal.WithMessage("second"), true
 	})
 
 	err := convertResponseError(sql.ErrNoRows, []ErrorConverter{first, second})
@@ -91,7 +91,7 @@ func TestUnaryErrorConverterInterceptor(t *testing.T) {
 func TestStreamErrorConverterInterceptor(t *testing.T) {
 	converter := ErrorConvertFunc(func(err error) (RespError, bool) {
 		if errx.Is(err, sql.ErrNoRows) {
-			return NewError(codes.NotFound, "record not found"), true
+			return ErrNotFound.WithMessage("record not found"), true
 		}
 		return RespError{}, false
 	})

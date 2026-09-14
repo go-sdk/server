@@ -24,7 +24,10 @@ func gatewayResponseRewriter(_ context.Context, response proto.Message) (any, er
 	if !ok || statusResponse.GetCode() == 0 {
 		return map[string]any{"data": response}, nil
 	}
+	return newGatewayErrorResponse(statusResponse)
+}
 
+func newGatewayErrorResponse(statusResponse *statuspb.Status) (gatewayErrorResponse, error) {
 	result := gatewayErrorResponse{
 		Code:    statusResponse.GetCode(),
 		Message: statusResponse.GetMessage(),
@@ -41,7 +44,7 @@ func gatewayResponseRewriter(_ context.Context, response proto.Message) (any, er
 		}
 		encoded, err := protojson.Marshal(detail)
 		if err != nil {
-			return nil, errx.Wrap(err, "marshal grpc error detail")
+			return gatewayErrorResponse{}, errx.Wrap(err, "marshal grpc error detail")
 		}
 		result.Details = append(result.Details, encoded)
 	}

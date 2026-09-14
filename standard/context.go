@@ -21,12 +21,13 @@ const (
 
 type contextKey struct{}
 
-// Context 提供标准中间件写入的请求级参数。
+// Context 提供标准中间件写入的请求级参数，以及额外 HTTP Handler 的请求和响应能力。
 type Context struct {
 	context.Context
 
 	values        map[string]any
 	authorization string
+	http          *httpContext
 }
 
 // NewContext 在保留已有参数的基础上创建新的请求上下文。
@@ -44,6 +45,7 @@ func NewContext(ctx context.Context, kvs ...any) context.Context {
 		Context:       ctx,
 		values:        values,
 		authorization: current.authorization,
+		http:          current.http,
 	})
 }
 
@@ -111,5 +113,6 @@ func contextWithAuthorization(ctx context.Context, authorization string) context
 		Context:       ctx,
 		values:        maps.Clone(current.values),
 		authorization: authorization,
+		http:          current.http,
 	})
 }

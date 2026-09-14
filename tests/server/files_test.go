@@ -11,6 +11,11 @@ import (
 	"strings"
 	"sync"
 	"testing"
+
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+
+	"github.com/go-sdk/server/standard"
 )
 
 // newUploadRequest 构造字段名为 file 的 multipart 上传请求。
@@ -34,10 +39,10 @@ func newUploadRequest(t *testing.T, filename string, content []byte) *http.Reque
 }
 
 // serveHandler 以给定路径参数执行 Handler 并返回响应记录。
-func serveHandler(handler func(http.ResponseWriter, *http.Request, map[string]string), request *http.Request, pathParams map[string]string) *httptest.ResponseRecorder {
+func serveHandler(handler standard.HandlerFunc, request *http.Request, pathParams map[string]string) (*httptest.ResponseRecorder, error) {
 	recorder := httptest.NewRecorder()
-	handler(recorder, request, pathParams)
-	return recorder
+	err := handler(standard.NewHTTPContext(request, recorder, pathParams))
+	return recorder, err
 }
 
 func TestFileStoreUpload(t *testing.T) {
@@ -45,7 +50,10 @@ func TestFileStoreUpload(t *testing.T) {
 
 	t.Run("stores file and returns metadata", func(t *testing.T) {
 		content := []byte("hello, files")
-		response := serveHandler(store.handleUpload, newUploadRequest(t, "hello.txt", content), nil)
+		response, err := serveHandler(store.handleUpload, newUploadRequest(t, "hello.txt", content), nil)
+		if err != nil {
+			t.Fatalf("upload file: %v", err)
+		}
 		if response.Code != http.StatusOK {
 			t.Fatalf("unexpected status: %d, body: %s", response.Code, response.Body.String())
 		}
@@ -56,7 +64,7 @@ func TestFileStoreUpload(t *testing.T) {
 			Name string `json:"name"`
 			Size int    `json:"size"`
 		}
-		if err := json.NewDecoder(response.Body).Decode(&metadata); err != nil {
+		if err = json.NewDecoder(response.Body).Decode(&metadata); err != nil {
 			t.Fatalf("decode response: %v", err)
 		}
 		if metadata.Name != "hello.txt" || metadata.Size != len(content) {
@@ -66,22 +74,25 @@ func TestFileStoreUpload(t *testing.T) {
 
 	t.Run("rejects missing file field", func(t *testing.T) {
 		request := httptest.NewRequest(http.MethodPost, "/upload", strings.NewReader("not a multipart form"))
-		response := serveHandler(store.handleUpload, request, nil)
-		if response.Code != http.StatusBadRequest {
-			t.Fatalf("unexpected status: %d", response.Code)
+		_, err := serveHandler(store.handleUpload, request, nil)
+		if status.Code(err) != codes.InvalidArgument {
+			t.Fatalf("unexpected error: %v", err)
 		}
 	})
 
 	t.Run("rejects file exceeding size limit", func(t *testing.T) {
 		content := make([]byte, maxFileSize+1)
-		response := serveHandler(store.handleUpload, newUploadRequest(t, "large.bin", content), nil)
-		if response.Code != http.StatusRequestEntityTooLarge {
-			t.Fatalf("unexpected status: %d", response.Code)
+		_, err := serveHandler(store.handleUpload, newUploadRequest(t, "large.bin", content), nil)
+		if status.Code(err) != codes.ResourceExhausted {
+			t.Fatalf("unexpected error: %v", err)
 		}
 	})
 
 	t.Run("sanitizes path traversal in filename", func(t *testing.T) {
-		response := serveHandler(store.handleUpload, newUploadRequest(t, "../../etc/passwd", []byte("x")), nil)
+		response, err := serveHandler(store.handleUpload, newUploadRequest(t, "../../etc/passwd", []byte("x")), nil)
+		if err != nil {
+			t.Fatalf("upload file: %v", err)
+		}
 		if response.Code != http.StatusOK {
 			t.Fatalf("unexpected status: %d", response.Code)
 		}
@@ -91,10 +102,17 @@ func TestFileStoreUpload(t *testing.T) {
 	})
 
 	t.Run("overwrites existing file with same name", func(t *testing.T) {
-		serveHandler(store.handleUpload, newUploadRequest(t, "dup.txt", []byte("first")), nil)
-		serveHandler(store.handleUpload, newUploadRequest(t, "dup.txt", []byte("second version")), nil)
-		response := serveHandler(store.handleDownload, httptest.NewRequest(http.MethodGet, "/download/dup.txt", nil),
+		if _, err := serveHandler(store.handleUpload, newUploadRequest(t, "dup.txt", []byte("first")), nil); err != nil {
+			t.Fatalf("upload first file: %v", err)
+		}
+		if _, err := serveHandler(store.handleUpload, newUploadRequest(t, "dup.txt", []byte("second version")), nil); err != nil {
+			t.Fatalf("upload second file: %v", err)
+		}
+		response, err := serveHandler(store.handleDownload, httptest.NewRequest(http.MethodGet, "/download/dup.txt", nil),
 			map[string]string{"name": "dup.txt"})
+		if err != nil {
+			t.Fatalf("download file: %v", err)
+		}
 		if response.Code != http.StatusOK {
 			t.Fatalf("unexpected status: %d", response.Code)
 		}
@@ -130,13 +148,16 @@ func TestNormalizeFileName(t *testing.T) {
 
 func TestFileStoreDownload(t *testing.T) {
 	store := newFileStore()
-	if response := serveHandler(store.handleUpload, newUploadRequest(t, "hello.txt", []byte("hello, files")), nil); response.Code != http.StatusOK {
+	if response, err := serveHandler(store.handleUpload, newUploadRequest(t, "hello.txt", []byte("hello, files")), nil); err != nil || response.Code != http.StatusOK {
 		t.Fatalf("upload file: status %d", response.Code)
 	}
 
 	t.Run("returns file content as attachment", func(t *testing.T) {
-		response := serveHandler(store.handleDownload, httptest.NewRequest(http.MethodGet, "/download/hello.txt", nil),
+		response, err := serveHandler(store.handleDownload, httptest.NewRequest(http.MethodGet, "/download/hello.txt", nil),
 			map[string]string{"name": "hello.txt"})
+		if err != nil {
+			t.Fatalf("download file: %v", err)
+		}
 		if response.Code != http.StatusOK {
 			t.Fatalf("unexpected status: %d", response.Code)
 		}
@@ -159,20 +180,23 @@ func TestFileStoreDownload(t *testing.T) {
 	})
 
 	t.Run("responds not found for missing file", func(t *testing.T) {
-		response := serveHandler(store.handleDownload, httptest.NewRequest(http.MethodGet, "/download/missing.txt", nil),
+		_, err := serveHandler(store.handleDownload, httptest.NewRequest(http.MethodGet, "/download/missing.txt", nil),
 			map[string]string{"name": "missing.txt"})
-		if response.Code != http.StatusNotFound {
-			t.Fatalf("unexpected status: %d", response.Code)
+		if status.Code(err) != codes.NotFound {
+			t.Fatalf("unexpected error: %v", err)
 		}
 	})
 
 	t.Run("sanitizes path traversal in route parameter", func(t *testing.T) {
 		// 先以穿越路径之外的正常文件名上传
-		if response := serveHandler(store.handleUpload, newUploadRequest(t, "secret.txt", []byte("s")), nil); response.Code != http.StatusOK {
+		if response, err := serveHandler(store.handleUpload, newUploadRequest(t, "secret.txt", []byte("s")), nil); err != nil || response.Code != http.StatusOK {
 			t.Fatalf("upload file: status %d", response.Code)
 		}
-		response := serveHandler(store.handleDownload, httptest.NewRequest(http.MethodGet, "/download/secret.txt", nil),
+		response, err := serveHandler(store.handleDownload, httptest.NewRequest(http.MethodGet, "/download/secret.txt", nil),
 			map[string]string{"name": filepath.Join("..", "..", "secret.txt")})
+		if err != nil {
+			t.Fatalf("download file: %v", err)
+		}
 		if response.Code != http.StatusOK {
 			t.Fatalf("unexpected status: %d", response.Code)
 		}
@@ -194,13 +218,21 @@ func TestFileStoreConcurrentAccess(t *testing.T) {
 		wg.Add(1)
 		go func(i int) {
 			defer wg.Done()
-			response := serveHandler(store.handleUpload, requests[i], nil)
+			response, err := serveHandler(store.handleUpload, requests[i], nil)
+			if err != nil {
+				t.Errorf("upload file: %v", err)
+				return
+			}
 			if response.Code != http.StatusOK {
 				t.Errorf("upload file: status %d", response.Code)
 				return
 			}
-			response = serveHandler(store.handleDownload, httptest.NewRequest(http.MethodGet, "/download/file.txt", nil),
+			response, err = serveHandler(store.handleDownload, httptest.NewRequest(http.MethodGet, "/download/file.txt", nil),
 				map[string]string{"name": "file.txt"})
+			if err != nil {
+				t.Errorf("download file: %v", err)
+				return
+			}
 			if response.Code != http.StatusOK {
 				t.Errorf("download file: status %d", response.Code)
 			}

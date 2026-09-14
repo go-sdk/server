@@ -2,15 +2,11 @@ package standard
 
 import (
 	"context"
-	"net/http"
 	"strings"
 
 	"github.com/go-sdk/core/errx"
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
 func unaryJWTAuthInterceptor(secret []byte) grpc.UnaryServerInterceptor {
@@ -20,7 +16,7 @@ func unaryJWTAuthInterceptor(secret []byte) grpc.UnaryServerInterceptor {
 		}
 		ctx, err := contextWithJWT(ctx, firstMetadataValue(ctx, "authorization"), secret)
 		if err != nil {
-			return nil, status.Error(codes.Unauthenticated, "invalid bearer token")
+			return nil, ErrUnauthenticated.WithMessage("invalid bearer token")
 		}
 		return handler(ctx, req)
 	}
@@ -33,23 +29,9 @@ func streamJWTAuthInterceptor(secret []byte) grpc.StreamServerInterceptor {
 		}
 		ctx, err := contextWithJWT(stream.Context(), firstMetadataValue(stream.Context(), "authorization"), secret)
 		if err != nil {
-			return status.Error(codes.Unauthenticated, "invalid bearer token")
+			return ErrUnauthenticated.WithMessage("invalid bearer token")
 		}
 		return handler(srv, &contextServerStream{ServerStream: stream, ctx: ctx})
-	}
-}
-
-func jwtHTTPHandler(secret []byte, handler runtime.HandlerFunc) runtime.HandlerFunc {
-	if len(secret) == 0 {
-		return handler
-	}
-	return func(w http.ResponseWriter, r *http.Request, pathParams map[string]string) {
-		ctx, err := contextWithJWT(r.Context(), r.Header.Get("Authorization"), secret)
-		if err != nil {
-			http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
-			return
-		}
-		handler(w, r.WithContext(ctx), pathParams)
 	}
 }
 

@@ -83,7 +83,7 @@ return nil, standard.ErrInvalidParam.
 	})
 ```
 
-也可以使用 `standard.NewError(code, message)` 创建其他错误。`ErrInternal` 和 `ErrInvalidParam` 是不可变的内置错误模板，链式方法返回副本，可以安全地被并发请求复用。`domain` 约定为业务错误码，`reason` 为后续 i18n 信息预留；它们通过 `google.rpc.ErrorInfo` 在 gRPC 中传递，Gateway 会提升到失败响应顶层，不在 `details` 中重复输出。
+优先使用 `ErrInternal`、`ErrInvalidParam`、`ErrUnauthenticated`、`ErrNotFound`、`ErrPermissionDenied`、`ErrAlreadyExists`、`ErrResourceExhausted`、`ErrFailedPrecondition`、`ErrAborted` 和 `ErrUnavailable` 等不可变的内置错误模板，并通过 `WithMessage`、`WithDomainReason` 和 `WithDetails` 设置具体响应信息；只有缺少对应模板时才使用 `standard.NewError(code, message)`。链式方法返回副本，可以安全地被并发请求复用。`domain` 约定为业务错误码，`reason` 为后续 i18n 信息预留；它们通过 `google.rpc.ErrorInfo` 在 gRPC 中传递，Gateway 会提升到失败响应顶层，不在 `details` 中重复输出。`WithHTTPStatus` 只覆盖 `HandlePath` 错误响应的 HTTP 状态码，不改变原生 gRPC Code。
 
 数据库、缓存或第三方 SDK 的错误可以通过 `ErrorConverter` 统一转换，而不让 Server 直接依赖具体驱动：
 
@@ -92,10 +92,10 @@ standard.WithErrorConverters(
 	standard.ErrorConvertFunc(func(err error) (standard.RespError, bool) {
 		switch {
 		case errors.Is(err, sql.ErrNoRows):
-			return standard.NewError(codes.NotFound, "record not found").
+			return standard.ErrNotFound.WithMessage("record not found").
 				WithDomainReason("RECORD_NOT_FOUND", "record.not_found"), true
 		case errors.Is(err, gorm.ErrRecordNotFound):
-			return standard.NewError(codes.NotFound, "record not found").
+			return standard.ErrNotFound.WithMessage("record not found").
 				WithDomainReason("RECORD_NOT_FOUND", "record.not_found"), true
 		default:
 			return standard.RespError{}, false
@@ -156,16 +156,22 @@ standard.WithGatewayRegister(
 err = server.HandlePath(
 	http.MethodPost,
 	"/upload",
-	func(w http.ResponseWriter, r *http.Request, pathParams map[string]string) {
-		// 校验并处理上传内容。
-		w.WriteHeader(http.StatusNoContent)
+	func(c *standard.Context) error {
+		if _, _, err := c.ReadFormFile("file", 32<<20); err != nil {
+			return err
+		}
+		return c.NoContent(http.StatusNoContent)
 	},
 )
 ```
 
-`HandlePath` 只能在 `Start` 前调用。额外 HTTP 接口会经过 HTTP 链路标识（TraceID/SpanID）、访问日志和 Recovery，但没有 protobuf 消息，因此不会应用 Protovalidate。
+`HandlePath` 接收 `standard.HandlerFunc`，其签名为 `func(c *standard.Context) error`，并且只能在 `Start` 前调用。Handler 返回 `nil` 表示响应已经正常完成；返回 `RespError` 时，Server 会按照与 Gateway 相同的 `code`、`message`、`domain`、`reason` 和 `details` 结构写入响应，并根据 gRPC Code 设置 HTTP 状态码。已注册的 Error Converter 同样作用于额外 HTTP Handler；未匹配的普通错误不会向调用方暴露原始信息，而是返回 `ErrInternal`。如果响应体已经开始写入，后续返回的错误只会记录日志，不会覆盖已提交的响应。
 
-配置 JWT 后，额外 HTTP 接口同样要求 `Authorization: Bearer <token>`，并可通过 `standard.FromContext(r.Context())` 读取已验证的 Claims 和请求参数。额外接口没有 Protobuf MethodOptions，不能使用 `skip_auth`。
+`Context` 通过 `Request` 和 `Response` 暴露原始 `*http.Request` 与 `http.ResponseWriter`，同时提供 `Param`、`Query`、`Queries`、`Header`、`FormValue`、`FormFile`、`ReadFormFile`、`SetHeader`、`JSON`、`Text`、`Blob` 和 `NoContent` 等常用辅助方法。`ReadFormFile(name, maxFileBytes)` 分别限制文件内容和包含固定表单开销的请求体，使用受控的内存阈值解析 multipart 表单，并负责关闭文件及清理临时文件；请求或文件超限返回 HTTP 413 和 `ErrResourceExhausted`，表单或字段无效返回 `ErrInvalidParam`。`NewHTTPContext` 可用于不启动 Server 的 Handler 单元测试。
+
+额外 HTTP 接口会经过 HTTP 链路标识（TraceID/SpanID）、访问日志和 Recovery，但没有 protobuf 消息，因此不会应用 Protovalidate。
+
+配置 JWT 后，额外 HTTP 接口同样要求 `Authorization: Bearer <token>`，并可直接通过 `c.JWT()` 读取已验证的 Claims 和请求参数。鉴权失败和 Handler panic 也使用统一错误结构。额外接口没有 Protobuf MethodOptions，不能使用 `skip_auth`。
 
 ## 启动与停止
 
@@ -255,8 +261,8 @@ Request Context -> Logging -> Payload Logging -> JWT Auth -> Protovalidate -> �
 - 方法设置 `(server.options.method).skip_log = true` 时仍记录请求与响应元数据，但 payload 使用 `***`；字段设置 `(server.options.field).sensitive = true` 时递归脱敏。
 - 配置 `WithJWTSecret` 后使用 HS256 验证 Bearer Token；方法设置 `(server.options.method).skip_auth = true` 时跳过鉴权。
 - Protovalidate 执行 Protobuf 中的 `buf.validate` 规则，失败时返回 `InvalidArgument`。
-- Error Converter 按注册顺序将应用依赖错误转换为统一 `RespError`，未匹配错误原样返回。
-- Recovery 将 gRPC panic 转换为 `Internal`，并保护额外 HTTP Handler 不导致进程退出。
+- Error Converter 按注册顺序将应用依赖错误转换为统一 `RespError`；额外 HTTP Handler 的未匹配错误统一隐藏为 `ErrInternal`。
+- Recovery 将 gRPC panic 转换为 `Internal`，额外 HTTP Handler 的 panic 转换为统一 `ErrInternal` 响应。
 
 ## 请求上下文
 

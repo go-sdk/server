@@ -23,6 +23,8 @@ server/
 │   ├── client_options.go           Client 明文、TLS 和 middleware Options
 │   ├── client_middleware.go        Client 上下文透传和 Payload Logging
 │   ├── context.go                  TraceID、SpanID、JWT Claims 和调用深度
+│   ├── http_context.go             额外 HTTP Handler、请求参数和响应辅助方法
+│   ├── http_handler.go             额外 HTTP 路由适配、鉴权和统一错误响应
 │   ├── error.go                    业务响应错误及内置错误模板
 │   ├── error_converter.go          应用依赖错误转换接口和 interceptor
 │   ├── gateway.go                  Gateway 注册和回连 endpoint 解析
@@ -96,7 +98,10 @@ Gateway 将成功的 Protobuf 消息放入 `data`，成功码为零且默认不�
 ### 路由
 
 - 主要 HTTP API 来自 Protobuf 的 `google.api.http` 注解。
-- `HandlePath` 只用于无法合理建模为 gRPC 的额外 HTTP 接口，并且只能在 `Start` 前调用。
+- `HandlePath` 只用于无法合理建模为 gRPC 的额外 HTTP 接口，并且只能在 `Start` 前调用；Handler 使用 `func(c *standard.Context) error` 签名。
+- 额外 HTTP Context 暴露原始 Request、Response 和路径参数，并提供 Query、Header、表单文件读取及 JSON、文本、二进制响应辅助方法。
+- Handler 返回的 `RespError` 使用与 Gateway 相同的失败结构，默认按照 gRPC Code 映射 HTTP 状态码，并可通过 `WithHTTPStatus` 覆盖额外 HTTP 接口的状态码；Error Converter、JWT 失败和 panic 也进入该响应链路，未匹配错误统一隐藏为 `ErrInternal`。
+- Handler 写入响应后再返回错误时仅记录日志，不追加或覆盖已经提交的响应。
 - 底层 Mux 和 Server 不作为公共 API 暴露。
 
 ### Middleware
@@ -106,7 +111,7 @@ Gateway 将成功的 Protobuf 消息放入 `data`，成功码为零且默认不�
 - JWT Auth 使用 Option 注入的 HS256 密钥验证 Bearer Token，验证后的 Claims 写入 `standard.Context`；设置 `server.options.method.skip_auth` 的 RPC 跳过鉴权。
 - Protovalidate 执行 `buf.validate` 规则，对原生 gRPC 和注解生成的 Gateway 请求生效。
 - Error Converter 位于自定义 interceptor 和 Recovery 之间，按注册顺序将数据库等应用依赖错误转换为统一 `RespError`，未匹配错误原样返回。
-- Recovery 位于 gRPC interceptor 链最内层，并在 HTTP 层保护额外 Handler。
+- Recovery 位于 gRPC interceptor 链最内层；额外 HTTP Handler 由路由适配层恢复 panic 并写入统一 `ErrInternal` 响应，外层 HTTP Recovery 继续保护 Gateway。
 - Health Service 默认启用且不鉴权、不记录 payload；Reflection 仅在设置 Option 后启用。
 
 ### 生命周期

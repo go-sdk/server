@@ -1,8 +1,6 @@
 package main
 
 import (
-	"encoding/json"
-	"io"
 	"mime"
 	"net/http"
 	"path/filepath"
@@ -11,8 +9,6 @@ import (
 	"sync"
 
 	"github.com/go-sdk/core/errx"
-	"github.com/go-sdk/core/logx"
-	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 
 	"github.com/go-sdk/server/standard"
 )
@@ -40,79 +36,48 @@ func normalizeFileName(value string) (string, bool) {
 }
 
 // handleUpload 处理 POST /upload，multipart 表单字段名为 file。
-func (s *fileStore) handleUpload(w http.ResponseWriter, r *http.Request, _ map[string]string) {
-	r.Body = http.MaxBytesReader(w, r.Body, maxFileSize)
-	if err := r.ParseMultipartForm(maxFileSize); err != nil {
-		status := http.StatusBadRequest
-		var maxErr *http.MaxBytesError
-		if errx.As(err, &maxErr) {
-			status = http.StatusRequestEntityTooLarge
-		}
-		http.Error(w, "parse multipart form", status)
-		return
-	}
-	if r.MultipartForm != nil {
-		defer func() { _ = r.MultipartForm.RemoveAll() }()
-	}
-	file, header, err := r.FormFile("file")
+func (s *fileStore) handleUpload(c *standard.Context) error {
+	filename, data, err := c.ReadFormFile("file", maxFileSize)
 	if err != nil {
-		http.Error(w, "missing file field", http.StatusBadRequest)
-		return
+		return err
 	}
-	defer func() { _ = file.Close() }()
 
-	name, ok := normalizeFileName(header.Filename)
+	name, ok := normalizeFileName(filename)
 	if !ok {
-		http.Error(w, "invalid file name", http.StatusBadRequest)
-		return
+		return standard.ErrInvalidParam.WithMessage("invalid file name")
 	}
-	data, err := io.ReadAll(file)
-	if err != nil {
-		http.Error(w, "read file content", http.StatusBadRequest)
-		return
-	}
-
 	s.mu.Lock()
 	s.files[name] = data
 	s.mu.Unlock()
 
-	w.Header().Set("Content-Type", "application/json")
 	response := struct {
 		Name string `json:"name"`
 		Size int    `json:"size"`
 	}{Name: name, Size: len(data)}
-	if err = json.NewEncoder(w).Encode(response); err != nil {
-		http.Error(w, "encode response", http.StatusInternalServerError)
-	}
+	return c.JSON(http.StatusOK, response)
 }
 
 // handleDownload 处理 GET /download/{name}，以附件形式返回文件内容。
-func (s *fileStore) handleDownload(w http.ResponseWriter, r *http.Request, pathParams map[string]string) {
-	name, valid := normalizeFileName(pathParams["name"])
+func (s *fileStore) handleDownload(c *standard.Context) error {
+	name, valid := normalizeFileName(c.Param("name"))
 	if !valid {
-		http.Error(w, "invalid file name", http.StatusBadRequest)
-		return
+		return standard.ErrInvalidParam.WithMessage("invalid file name")
 	}
 
 	s.mu.RLock()
 	data, ok := s.files[name]
 	s.mu.RUnlock()
 	if !ok {
-		http.NotFound(w, r)
-		return
+		return standard.ErrNotFound.WithMessage("file not found")
 	}
 
-	w.Header().Set("Content-Type", "application/octet-stream")
 	disposition := mime.FormatMediaType("attachment", map[string]string{"filename": name})
 	if disposition == "" {
-		http.Error(w, "invalid file name", http.StatusBadRequest)
-		return
+		return standard.ErrInvalidParam.WithMessage("invalid file name")
 	}
-	w.Header().Set("Content-Disposition", disposition)
-	w.Header().Set("Content-Length", strconv.Itoa(len(data)))
-	if _, err := w.Write(data); err != nil {
-		logx.Ctx(r.Context()).Error().Err(err).Msg("write file content")
-	}
+	c.SetHeader("Content-Disposition", disposition)
+	c.SetHeader("Content-Length", strconv.Itoa(len(data)))
+	return c.Blob(http.StatusOK, "application/octet-stream", data)
 }
 
 // registerFileHandlers 将上传和下载接口注册到额外 HTTP 路由。
@@ -126,7 +91,5 @@ func (s *fileStore) registerFileHandlers(server *standard.Server) error {
 	return nil
 }
 
-var (
-	_ runtime.HandlerFunc = (*fileStore)(nil).handleUpload
-	_ runtime.HandlerFunc = (*fileStore)(nil).handleDownload
-)
+var _ standard.HandlerFunc = (*fileStore)(nil).handleUpload
+var _ standard.HandlerFunc = (*fileStore)(nil).handleDownload

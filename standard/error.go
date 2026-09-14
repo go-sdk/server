@@ -17,6 +17,8 @@ type RespError struct {
 	domain  string
 	reason  string
 	details []proto.Message
+
+	httpStatus int
 }
 
 var (
@@ -24,11 +26,39 @@ var (
 	ErrInternal = NewError(codes.Internal, "internal server error")
 	// ErrInvalidParam 表示请求参数不合法。
 	ErrInvalidParam = NewError(codes.InvalidArgument, "invalid parameter")
+	// ErrUnauthenticated 表示调用方尚未通过身份认证。
+	ErrUnauthenticated = NewError(codes.Unauthenticated, "unauthenticated")
+	// ErrNotFound 表示请求的资源不存在。
+	ErrNotFound = NewError(codes.NotFound, "resource not found")
+	// ErrPermissionDenied 表示调用方无权执行当前操作。
+	ErrPermissionDenied = NewError(codes.PermissionDenied, "permission denied")
+	// ErrAlreadyExists 表示待创建的资源已经存在。
+	ErrAlreadyExists = NewError(codes.AlreadyExists, "resource already exists")
+	// ErrResourceExhausted 表示请求超过服务允许的资源限制。
+	ErrResourceExhausted = NewError(codes.ResourceExhausted, "resource exhausted")
+	// ErrFailedPrecondition 表示当前系统状态不满足操作前置条件。
+	ErrFailedPrecondition = NewError(codes.FailedPrecondition, "failed precondition")
+	// ErrAborted 表示操作因并发冲突等原因被中止。
+	ErrAborted = NewError(codes.Aborted, "operation aborted")
+	// ErrUnavailable 表示服务暂时不可用。
+	ErrUnavailable = NewError(codes.Unavailable, "service unavailable")
 )
 
 // NewError 创建指定 gRPC Code 和消息的响应错误。
 func NewError(code codes.Code, message string) RespError {
 	return RespError{code: code, message: message}
+}
+
+// WithMessage 设置返回给调用方的错误消息。
+func (e RespError) WithMessage(message string) RespError {
+	e.message = message
+	return e
+}
+
+// WithHTTPStatus 设置通过 HandlePath 返回错误时使用的 HTTP 状态码。
+func (e RespError) WithHTTPStatus(statusCode int) RespError {
+	e.httpStatus = statusCode
+	return e
 }
 
 // WithDomainReason 设置由业务定义的错误码和 i18n 信息。
