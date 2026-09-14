@@ -22,12 +22,17 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+// 示例服务与测试服务使用的业务错误码。
+// 数字值写入错误响应的 domain；message 为英文默认文案并支持 Go template 变量，
+// 其他语言的翻译由 Server 注入的 i18n Bundle 按错误码数字字符串提供。
 type ErrorCode int32
 
 const (
-	ErrorCode_ERROR_CODE_UNSPECIFIED       ErrorCode = 0
+	ErrorCode_ERROR_CODE_UNSPECIFIED ErrorCode = 0
+	// 上传或下载的文件名不合法
 	ErrorCode_ERROR_CODE_INVALID_FILE_NAME ErrorCode = 1000001
-	ErrorCode_ERROR_CODE_FILE_NOT_FOUND    ErrorCode = 1000002
+	// 请求的文件不存在，模板变量 Name 为文件名
+	ErrorCode_ERROR_CODE_FILE_NOT_FOUND ErrorCode = 1000002
 )
 
 // Enum value maps for ErrorCode.
@@ -75,11 +80,11 @@ var File_common_error_proto protoreflect.FileDescriptor
 
 const file_common_error_proto_rawDesc = "" +
 	"\n" +
-	"\x12common/error.proto\x12\x06common\x1a\x15options/options.proto*\x9f\x01\n" +
+	"\x12common/error.proto\x12\x06common\x1a\x15options/options.proto*\xa9\x01\n" +
 	"\tErrorCode\x12\x1a\n" +
 	"\x16ERROR_CODE_UNSPECIFIED\x10\x00\x12=\n" +
-	"\x1cERROR_CODE_INVALID_FILE_NAME\x10\xc1\x84=\x1a\x19\xb2\x9e\xf2\x84\x06\x13\x12\x11invalid file name\x127\n" +
-	"\x19ERROR_CODE_FILE_NOT_FOUND\x10\u0084=\x1a\x16\xb2\x9e\xf2\x84\x06\x10\x12\x0efile not foundBz\n" +
+	"\x1cERROR_CODE_INVALID_FILE_NAME\x10\xc1\x84=\x1a\x19\xb2\x9e\xf2\x84\x06\x13\x12\x11invalid file name\x12A\n" +
+	"\x19ERROR_CODE_FILE_NOT_FOUND\x10\u0084=\x1a \xb2\x9e\xf2\x84\x06\x1a\x12\x18file {{.Name}} not foundBz\n" +
 	"\n" +
 	"com.commonB\n" +
 	"ErrorProtoP\x01Z(github.com/go-sdk/server/tests/pb/common\xa2\x02\x03CXX\xaa\x02\x06Common\xca\x02\x06Common\xe2\x02\x12Common\\GPBMetadata\xea\x02\x06Commonb\x06proto3"

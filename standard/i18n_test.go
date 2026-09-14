@@ -37,10 +37,11 @@ func TestLocalizeResponseErrorFallsBackToEnglish(t *testing.T) {
 		Other: "文件不存在",
 	})
 	err := localizeResponseError(ctx, ErrNotFound.
-		WithErrorCode(commonpb.ErrorCode_ERROR_CODE_FILE_NOT_FOUND), bundle)
+		WithErrorCode(commonpb.ErrorCode_ERROR_CODE_FILE_NOT_FOUND).
+		WithData(map[string]any{"Name": "report.pdf"}), bundle)
 
 	info := errorInfoFromError(t, err)
-	if info.GetReason() != "file not found" {
+	if info.GetReason() != "file report.pdf not found" {
 		t.Fatalf("unexpected English fallback: %q", info.GetReason())
 	}
 }

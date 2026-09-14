@@ -11,6 +11,7 @@ import (
 	"github.com/go-sdk/core/errx"
 
 	"github.com/go-sdk/server/standard"
+	commonpb "github.com/go-sdk/server/tests/pb/common"
 )
 
 // maxFileSize 限制单次上传大小，避免示例服务占用过多内存
@@ -44,7 +45,8 @@ func (s *fileStore) handleUpload(c *standard.Context) error {
 
 	name, ok := normalizeFileName(filename)
 	if !ok {
-		return standard.ErrInvalidParam.WithMessage("invalid file name")
+		return standard.ErrInvalidParam.
+			WithErrorCode(commonpb.ErrorCode_ERROR_CODE_INVALID_FILE_NAME)
 	}
 	s.mu.Lock()
 	s.files[name] = data
@@ -61,19 +63,23 @@ func (s *fileStore) handleUpload(c *standard.Context) error {
 func (s *fileStore) handleDownload(c *standard.Context) error {
 	name, valid := normalizeFileName(c.Param("name"))
 	if !valid {
-		return standard.ErrInvalidParam.WithMessage("invalid file name")
+		return standard.ErrInvalidParam.
+			WithErrorCode(commonpb.ErrorCode_ERROR_CODE_INVALID_FILE_NAME)
 	}
 
 	s.mu.RLock()
 	data, ok := s.files[name]
 	s.mu.RUnlock()
 	if !ok {
-		return standard.ErrNotFound.WithMessage("file not found")
+		return standard.ErrNotFound.
+			WithErrorCode(commonpb.ErrorCode_ERROR_CODE_FILE_NOT_FOUND).
+			WithData(map[string]any{"Name": name})
 	}
 
 	disposition := mime.FormatMediaType("attachment", map[string]string{"filename": name})
 	if disposition == "" {
-		return standard.ErrInvalidParam.WithMessage("invalid file name")
+		return standard.ErrInvalidParam.
+			WithErrorCode(commonpb.ErrorCode_ERROR_CODE_INVALID_FILE_NAME)
 	}
 	c.SetHeader("Content-Disposition", disposition)
 	c.SetHeader("Content-Length", strconv.Itoa(len(data)))

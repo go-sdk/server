@@ -24,6 +24,8 @@ func newServiceTestServer(t *testing.T) *testserver.Server {
 	t.Helper()
 	return testserver.New(t,
 		standard.WithJWTSecret(testJWTSecret),
+		// 与示例服务一致注入翻译目录，验证错误码文案的本地化链路
+		standard.WithI18nBundle(newErrorI18nBundle()),
 		standard.WithGRPCRegister(func(registrar grpc.ServiceRegistrar) {
 			corev1.RegisterUserServiceServer(registrar, &userService{})
 			bizv1.RegisterBillServiceServer(registrar, &billService{})

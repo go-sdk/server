@@ -5,21 +5,24 @@ import (
 	"encoding/json"
 	"mime"
 	"mime/multipart"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
+	"google.golang.org/genproto/googleapis/rpc/errdetails"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
 	"github.com/go-sdk/server/standard"
 )
 
-// newUploadRequest 构造字段名为 file 的 multipart 上传请求。
-func newUploadRequest(t *testing.T, filename string, content []byte) *http.Request {
+// newUploadBody 构造字段名为 file 的 multipart 请求体和 Content-Type。
+func newUploadBody(t *testing.T, filename string, content []byte) (*bytes.Buffer, string) {
 	t.Helper()
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
@@ -33,8 +36,15 @@ func newUploadRequest(t *testing.T, filename string, content []byte) *http.Reque
 	if err = writer.Close(); err != nil {
 		t.Fatalf("close form writer: %v", err)
 	}
+	return body, writer.FormDataContentType()
+}
+
+// newUploadRequest 构造字段名为 file 的 multipart 上传请求。
+func newUploadRequest(t *testing.T, filename string, content []byte) *http.Request {
+	t.Helper()
+	body, contentType := newUploadBody(t, filename, content)
 	request := httptest.NewRequest(http.MethodPost, "/upload", body)
-	request.Header.Set("Content-Type", writer.FormDataContentType())
+	request.Header.Set("Content-Type", contentType)
 	return request
 }
 
@@ -43,6 +53,37 @@ func serveHandler(handler standard.HandlerFunc, request *http.Request, pathParam
 	recorder := httptest.NewRecorder()
 	err := handler(standard.NewHTTPContext(request, recorder, pathParams))
 	return recorder, err
+}
+
+// errorInfoFromError 从统一错误中提取 ErrorInfo 详情（错误码数字值和初始 reason）。
+func errorInfoFromError(t *testing.T, err error) *errdetails.ErrorInfo {
+	t.Helper()
+	details := status.Convert(err).Details()
+	if len(details) != 1 {
+		t.Fatalf("unexpected error details: %v", details)
+	}
+	info, ok := details[0].(*errdetails.ErrorInfo)
+	if !ok {
+		t.Fatalf("unexpected error detail: %T", details[0])
+	}
+	return info
+}
+
+// httpFailure 是统一失败响应中测试关注的字段。
+type httpFailure struct {
+	Code   int32  `json:"code"`
+	Domain string `json:"domain"`
+	Reason string `json:"reason"`
+}
+
+// decodeHTTPFailure 解析统一失败响应。
+func decodeHTTPFailure(t *testing.T, response *http.Response) httpFailure {
+	t.Helper()
+	var failure httpFailure
+	if err := json.NewDecoder(response.Body).Decode(&failure); err != nil {
+		t.Fatalf("decode failure response: %v", err)
+	}
+	return failure
 }
 
 func TestFileStoreUpload(t *testing.T) {
@@ -78,6 +119,19 @@ func TestFileStoreUpload(t *testing.T) {
 		if status.Code(err) != codes.InvalidArgument {
 			t.Fatalf("unexpected error: %v", err)
 		}
+		if details := status.Convert(err).Details(); len(details) != 0 {
+			t.Fatalf("standard invalid param must not carry error code: %v", details)
+		}
+	})
+
+	t.Run("rejects invalid file name", func(t *testing.T) {
+		_, err := serveHandler(store.handleUpload, newUploadRequest(t, "..", []byte("x")), nil)
+		if status.Code(err) != codes.InvalidArgument {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if info := errorInfoFromError(t, err); info.GetDomain() != "1000001" || info.GetReason() != "ERROR_CODE_INVALID_FILE_NAME" {
+			t.Fatalf("unexpected error info: %v", info)
+		}
 	})
 
 	t.Run("rejects file exceeding size limit", func(t *testing.T) {
@@ -85,6 +139,9 @@ func TestFileStoreUpload(t *testing.T) {
 		_, err := serveHandler(store.handleUpload, newUploadRequest(t, "large.bin", content), nil)
 		if status.Code(err) != codes.ResourceExhausted {
 			t.Fatalf("unexpected error: %v", err)
+		}
+		if details := status.Convert(err).Details(); len(details) != 0 {
+			t.Fatalf("standard resource limit error must not carry error code: %v", details)
 		}
 	})
 
@@ -185,6 +242,20 @@ func TestFileStoreDownload(t *testing.T) {
 		if status.Code(err) != codes.NotFound {
 			t.Fatalf("unexpected error: %v", err)
 		}
+		if info := errorInfoFromError(t, err); info.GetDomain() != "1000002" || info.GetReason() != "ERROR_CODE_FILE_NOT_FOUND" {
+			t.Fatalf("unexpected error info: %v", info)
+		}
+	})
+
+	t.Run("rejects invalid route parameter", func(t *testing.T) {
+		_, err := serveHandler(store.handleDownload, httptest.NewRequest(http.MethodGet, "/download/..", nil),
+			map[string]string{"name": ".."})
+		if status.Code(err) != codes.InvalidArgument {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if info := errorInfoFromError(t, err); info.GetDomain() != "1000001" || info.GetReason() != "ERROR_CODE_INVALID_FILE_NAME" {
+			t.Fatalf("unexpected error info: %v", info)
+		}
 	})
 
 	t.Run("sanitizes path traversal in route parameter", func(t *testing.T) {
@@ -202,6 +273,87 @@ func TestFileStoreDownload(t *testing.T) {
 		}
 		if response.Body.String() != "s" {
 			t.Fatalf("unexpected content: %q", response.Body.String())
+		}
+	})
+}
+
+// TestFileStoreErrorLocalization 通过真实 HTTP 链路验证错误码本地化：
+// domain 为错误码数字值，reason 使用注入的 Bundle 渲染模板变量。
+func TestFileStoreErrorLocalization(t *testing.T) {
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("listen: %v", err)
+	}
+	server, err := standard.New(
+		standard.WithListener(listener),
+		standard.WithI18nBundle(newErrorI18nBundle()),
+	)
+	if err != nil {
+		_ = listener.Close()
+		t.Fatalf("create server: %v", err)
+	}
+	if err = newFileStore().registerFileHandlers(server); err != nil {
+		_ = listener.Close()
+		t.Fatalf("register file handlers: %v", err)
+	}
+	if err = server.Start(); err != nil {
+		_ = listener.Close()
+		t.Fatalf("start server: %v", err)
+	}
+	t.Cleanup(func() {
+		if stopErr := server.Stop(); stopErr != nil {
+			t.Errorf("stop server: %v", stopErr)
+		}
+	})
+
+	client := &http.Client{Timeout: 5 * time.Second}
+	baseURL := "http://" + listener.Addr().String()
+
+	t.Run("localizes missing file with template data", func(t *testing.T) {
+		request, err := http.NewRequest(http.MethodGet, baseURL+"/download/missing.bin", nil)
+		if err != nil {
+			t.Fatalf("create request: %v", err)
+		}
+		request.Header.Set("Accept-Language", "zh-CN")
+		response, err := client.Do(request)
+		if err != nil {
+			t.Fatalf("download file: %v", err)
+		}
+		defer func() { _ = response.Body.Close() }()
+		if response.StatusCode != http.StatusNotFound {
+			t.Fatalf("unexpected status: %d", response.StatusCode)
+		}
+		failure := decodeHTTPFailure(t, response)
+		if failure.Code != int32(codes.NotFound) || failure.Domain != "1000002" {
+			t.Fatalf("unexpected failure: %+v", failure)
+		}
+		if failure.Reason != "文件 missing.bin 不存在" {
+			t.Fatalf("unexpected localized reason: %q", failure.Reason)
+		}
+	})
+
+	t.Run("localizes invalid file name", func(t *testing.T) {
+		body, contentType := newUploadBody(t, "..", []byte("x"))
+		request, err := http.NewRequest(http.MethodPost, baseURL+"/upload", body)
+		if err != nil {
+			t.Fatalf("create request: %v", err)
+		}
+		request.Header.Set("Content-Type", contentType)
+		request.Header.Set("Accept-Language", "zh-CN")
+		response, err := client.Do(request)
+		if err != nil {
+			t.Fatalf("upload file: %v", err)
+		}
+		defer func() { _ = response.Body.Close() }()
+		if response.StatusCode != http.StatusBadRequest {
+			t.Fatalf("unexpected status: %d", response.StatusCode)
+		}
+		failure := decodeHTTPFailure(t, response)
+		if failure.Code != int32(codes.InvalidArgument) || failure.Domain != "1000001" {
+			t.Fatalf("unexpected failure: %+v", failure)
+		}
+		if failure.Reason != "无效的文件名" {
+			t.Fatalf("unexpected localized reason: %q", failure.Reason)
 		}
 	})
 }

@@ -63,8 +63,8 @@ Gateway 成功响应统一将 Protobuf 消息放在 `data` 下。成功码为零
 
 ```json
 {
-  "code": 3,
-  "message": "invalid parameter",
+  "code": 5,
+  "message": "resource not found",
   "domain": "1000002",
   "reason": "文件 report.pdf 不存在",
   "details": []

@@ -15,7 +15,8 @@ import (
 
 // main 启动标准示例服务，演示 standard.Server 的完整用法：
 // gRPC 与 Gateway 共用 :8080 端口，业务实现见 service.go；
-// 上传和下载等无法建模为 RPC 的接口通过 HandlePath 注册，见 files.go。
+// 上传和下载等无法建模为 RPC 的接口通过 HandlePath 注册，见 files.go；
+// 错误文案通过注入的 i18n Bundle 本地化，见 i18n.go。
 func main() {
 	// 进程级全局日志字段，随所有日志输出
 	logx.SetGlobalKV("app", "tests")
@@ -29,6 +30,9 @@ func main() {
 		standard.WithAddress(":8080"),
 		standard.WithReflection(),
 		standard.WithJWTSecret([]byte("12345678")),
+		// 注入错误文案翻译目录，错误响应按 Accept-Language 选择语言渲染 reason，
+		// 未匹配的语言回退到错误码定义的英文默认文案
+		standard.WithI18nBundle(newErrorI18nBundle()),
 		standard.WithGRPCRegister(func(registrar grpc.ServiceRegistrar) {
 			corev1.RegisterUserServiceServer(registrar, &userService{})
 			bizv1.RegisterBillServiceServer(registrar, &billService{})

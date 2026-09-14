@@ -4,9 +4,14 @@ package common;
 
 import "options/options.proto";
 
+// 示例服务与测试服务使用的业务错误码。
+// 数字值写入错误响应的 domain；message 为英文默认文案并支持 Go template 变量，
+// 其他语言的翻译由 Server 注入的 i18n Bundle 按错误码数字字符串提供。
 enum ErrorCode {
   ERROR_CODE_UNSPECIFIED = 0;
 
+  // 上传或下载的文件名不合法
   ERROR_CODE_INVALID_FILE_NAME = 1000001 [(server.options.enum_value).message = "invalid file name"];
-  ERROR_CODE_FILE_NOT_FOUND = 1000002 [(server.options.enum_value).message = "file not found"];
+  // 请求的文件不存在，模板变量 Name 为文件名
+  ERROR_CODE_FILE_NOT_FOUND = 1000002 [(server.options.enum_value).message = "file {{.Name}} not found"];
 }
