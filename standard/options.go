@@ -12,6 +12,8 @@ import (
 	"github.com/go-sdk/core/errx"
 	grpclogging "github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/logging"
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
+	"github.com/nicksnyder/go-i18n/v2/i18n"
+	"golang.org/x/text/language"
 	"google.golang.org/grpc"
 )
 
@@ -46,6 +48,7 @@ type config struct {
 	unaryInterceptors  []grpc.UnaryServerInterceptor
 	streamInterceptors []grpc.StreamServerInterceptor
 	errorConverters    []ErrorConverter
+	i18nBundle         *i18n.Bundle
 	grpcRegisters      []GRPCRegisterFunc
 	gatewayRegisters   []GatewayRegisterFunc
 	logger             grpclogging.Logger
@@ -54,7 +57,11 @@ type config struct {
 }
 
 func defaultConfig() config {
-	return config{address: ":8080", gracefulTimeout: 5 * time.Second}
+	return config{
+		address:         ":8080",
+		gracefulTimeout: 5 * time.Second,
+		i18nBundle:      i18n.NewBundle(language.English),
+	}
 }
 
 func (c config) validate() error {
@@ -190,6 +197,17 @@ func WithErrorConverters(converters ...ErrorConverter) Option {
 			return errx.New("error converter must not be nil")
 		}
 		c.errorConverters = append(c.errorConverters, converters...)
+		return nil
+	}
+}
+
+// WithI18nBundle 注入业务翻译目录；未匹配语言时回退到错误码定义的英文文案。
+func WithI18nBundle(bundle *i18n.Bundle) Option {
+	return func(c *config) error {
+		if bundle == nil {
+			return errx.New("i18n bundle must not be nil")
+		}
+		c.i18nBundle = bundle
 		return nil
 	}
 }

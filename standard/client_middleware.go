@@ -32,6 +32,9 @@ func outgoingRequestContext(ctx context.Context) context.Context {
 	if requestContext.authorization != "" {
 		metadataValues.Set("authorization", requestContext.authorization)
 	}
+	if requestContext.AcceptLanguage() != "" {
+		metadataValues.Set(acceptLanguageMetadataKey, requestContext.AcceptLanguage())
+	}
 	metadataValues.Set(depthMetadataKey, strconv.Itoa(requestContext.Depth()+1))
 	return metadata.NewOutgoingContext(ctx, metadataValues)
 }

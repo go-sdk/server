@@ -50,7 +50,7 @@ func (s *Server) renderHTTPError(ctx *Context, handlerErr error) {
 		return
 	}
 
-	converted := convertResponseError(handlerErr, s.config.errorConverters)
+	converted := localizeResponseError(ctx, convertResponseError(handlerErr, s.config.errorConverters), s.config.i18nBundle)
 	httpStatus := 0
 	var responseError RespError
 	if errx.As(converted, &responseError) {

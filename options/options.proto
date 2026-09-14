@@ -34,3 +34,17 @@ message FieldOptions {
   // 是否敏感字段
   bool sensitive = 1;
 }
+
+extend google.protobuf.EnumValueOptions {
+  EnumValueOptions enum_value = 202609126;
+}
+
+// 枚举值选项
+message EnumValueOptions {
+  // --- ErrorCode ---
+
+  // HandlePath 错误响应使用的 HTTP 状态码
+  int32 http_status = 1;
+  // 英文默认错误文案，支持 Go text/template 变量
+  string message = 2;
+}

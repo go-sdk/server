@@ -74,7 +74,7 @@ func TestUnaryErrorConverterInterceptor(t *testing.T) {
 		}
 		return RespError{}, false
 	})
-	interceptor := unaryErrorConverterInterceptor([]ErrorConverter{converter})
+	interceptor := unaryErrorConverterInterceptor([]ErrorConverter{converter}, nil)
 	response, err := interceptor(
 		context.Background(),
 		nil,
@@ -95,8 +95,9 @@ func TestStreamErrorConverterInterceptor(t *testing.T) {
 		}
 		return RespError{}, false
 	})
-	interceptor := streamErrorConverterInterceptor([]ErrorConverter{converter})
-	err := interceptor(nil, nil, &grpc.StreamServerInfo{}, func(any, grpc.ServerStream) error {
+	interceptor := streamErrorConverterInterceptor([]ErrorConverter{converter}, nil)
+	stream := &contextServerStream{ctx: context.Background()}
+	err := interceptor(nil, stream, &grpc.StreamServerInfo{}, func(any, grpc.ServerStream) error {
 		return sql.ErrNoRows
 	})
 	if status.Code(err) != codes.NotFound {

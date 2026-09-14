@@ -83,7 +83,7 @@ http.Server
 
 Gateway 使用生成代码中的 `Register*HandlerFromEndpoint`，因此注解生成的 HTTP 请求会进入真实 gRPC Server，并经过与原生 gRPC 请求相同的 interceptor。不得使用 `Register*HandlerServer` 绕过 gRPC 调用链。
 
-Gateway 将成功的 Protobuf 消息放入 `data`，成功码为零且默认不输出。失败响应依次输出 `code`、`message`、`domain`、`reason` 和 `details`；其中 `domain` 和 `reason` 由业务通过 `RespError` 提供，承载它们的 `google.rpc.ErrorInfo` 不在 HTTP `details` 中重复输出。原生 gRPC 响应和 Status 结构保持不变。
+Gateway 将成功的 Protobuf 消息放入 `data`，成功码为零且默认不输出。失败响应依次输出 `code`、`message`、`domain`、`reason` 和 `details`；错误码枚举数字值写入 `domain`，本地化后的最终文案写入 `reason`，承载它们的 `google.rpc.ErrorInfo` 不在 HTTP `details` 中重复输出。原生 gRPC 响应和 Status 结构保持不变。
 
 ## `standard` 包
 
@@ -100,17 +100,17 @@ Gateway 将成功的 Protobuf 消息放入 `data`，成功码为零且默认不�
 - 主要 HTTP API 来自 Protobuf 的 `google.api.http` 注解。
 - `HandlePath` 只用于无法合理建模为 gRPC 的额外 HTTP 接口，并且只能在 `Start` 前调用；Handler 使用 `func(c *standard.Context) error` 签名。
 - 额外 HTTP Context 暴露原始 Request、Response 和路径参数，并提供 Query、Header、表单文件读取及 JSON、文本、二进制响应辅助方法。
-- Handler 返回的 `RespError` 使用与 Gateway 相同的失败结构，默认按照 gRPC Code 映射 HTTP 状态码，并可通过 `WithHTTPStatus` 覆盖额外 HTTP 接口的状态码；Error Converter、JWT 失败和 panic 也进入该响应链路，未匹配错误统一隐藏为 `ErrInternal`。
+- Handler 返回的 `RespError` 使用与 Gateway 相同的失败结构，默认按照 gRPC Code 映射 HTTP 状态码，并可通过错误码枚举的 `http_status` 或 `WithHTTPStatus` 覆盖额外 HTTP 接口的状态码；Error Converter、JWT 失败和 panic 也进入该响应链路，未匹配错误统一隐藏为 `ErrInternal`。
 - Handler 写入响应后再返回错误时仅记录日志，不追加或覆盖已经提交的响应。
 - 底层 Mux 和 Server 不作为公共 API 暴露。
 
 ### Middleware
 
-- Request Context 对外以 `X-Request-Id` 请求头和 gRPC `x-request-id` metadata 接收并回写链路标识，内部统一命名为 TraceID；每次请求入口生成服务内 SpanID，仅随日志输出，不透传也不写入响应。两者与调用深度和安全的请求信息一起在 HTTP Header、HTTP context、gRPC metadata 和业务 context 间传递，并注入 `standard.Context` 和 `core/logx`。Gateway 不透传任何 gRPC 响应头，HTTP 响应的 `X-Request-Id` 由外层 HTTP 中间件统一写入。
+- Request Context 对外以 `X-Request-Id` 请求头和 gRPC `x-request-id` metadata 接收并回写链路标识，内部统一命名为 TraceID；每次请求入口生成服务内 SpanID，仅随日志输出，不透传也不写入响应。两者与调用深度、安全的请求信息和原始 `Accept-Language` 一起在 HTTP Header、HTTP context、gRPC metadata 和业务 context 间传递，并注入 `standard.Context`；语言偏好继续透传给下游 gRPC 服务。Gateway 不透传任何 gRPC 响应头，HTTP 响应的 `X-Request-Id` 由外层 HTTP 中间件统一写入。
 - Logging 记录 gRPC 调用元数据；Payload Logging 分别记录请求和响应，敏感字段以及设置 `server.options.method.skip_log` 的完整 payload 使用 `***` 替代。
 - JWT Auth 使用 Option 注入的 HS256 密钥验证 Bearer Token，验证后的 Claims 写入 `standard.Context`；设置 `server.options.method.skip_auth` 的 RPC 跳过鉴权。
 - Protovalidate 执行 `buf.validate` 规则，对原生 gRPC 和注解生成的 Gateway 请求生效。
-- Error Converter 位于自定义 interceptor 和 Recovery 之间，按注册顺序将数据库等应用依赖错误转换为统一 `RespError`，未匹配错误原样返回。
+- Error Converter 位于自定义 interceptor 和 Recovery 之间，按注册顺序将数据库等应用依赖错误转换为统一 `RespError`，随后根据请求语言渲染错误码文案；缺少目标语言时依次回退英文默认文案和枚举名称，未匹配错误原样返回。
 - Recovery 位于 gRPC interceptor 链最内层；额外 HTTP Handler 由路由适配层恢复 panic 并写入统一 `ErrInternal` 响应，外层 HTTP Recovery 继续保护 Gateway。
 - Health Service 默认启用且不鉴权、不记录 payload；Reflection 仅在设置 Option 后启用。
 

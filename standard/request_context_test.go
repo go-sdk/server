@@ -20,6 +20,7 @@ func TestHTTPRequestContextMiddleware(t *testing.T) {
 	request.Header.Set(depthHeader, "2")
 	request.Header.Set("Content-Type", "application/json")
 	request.Header.Set("User-Agent", "test-agent")
+	request.Header.Set("Accept-Language", "zh-CN,en;q=0.8")
 	response := httptest.NewRecorder()
 	handler.ServeHTTP(response, request)
 
@@ -41,11 +42,14 @@ func TestHTTPRequestContextMiddleware(t *testing.T) {
 	if requestContext.ClientIP() != "192.0.2.1" || requestContext.ContentType() != "application/json" || requestContext.UserAgent() != "test-agent" {
 		t.Fatal("request metadata was not initialized")
 	}
+	if requestContext.AcceptLanguage() != "zh-CN,en;q=0.8" {
+		t.Fatalf("unexpected accept language: %q", requestContext.AcceptLanguage())
+	}
 }
 
 func TestOutgoingRequestContext(t *testing.T) {
 	ctx := metadata.AppendToOutgoingContext(context.Background(), "custom", "value")
-	ctx = NewContext(ctx, TraceIDKey, "trace-1", DepthKey, 2)
+	ctx = NewContext(ctx, TraceIDKey, "trace-1", AcceptLanguageKey, "zh-CN", DepthKey, 2)
 	ctx = contextWithAuthorization(ctx, "Bearer token")
 	outgoing := outgoingRequestContext(ctx)
 	values, ok := metadata.FromOutgoingContext(outgoing)
@@ -56,6 +60,7 @@ func TestOutgoingRequestContext(t *testing.T) {
 	assertMetadataValue(t, values, traceIDMetadataKey, "trace-1")
 	assertMetadataValue(t, values, depthMetadataKey, "3")
 	assertMetadataValue(t, values, "authorization", "Bearer token")
+	assertMetadataValue(t, values, acceptLanguageMetadataKey, "zh-CN")
 }
 
 func TestHTTPRecoveryMiddleware(t *testing.T) {

@@ -29,6 +29,9 @@ func gatewayRequestMetadata(ctx context.Context, request *http.Request) metadata
 	if requestContext.authorization != "" {
 		pairs = append(pairs, "authorization", requestContext.authorization)
 	}
+	if requestContext.AcceptLanguage() != "" {
+		pairs = append(pairs, acceptLanguageMetadataKey, requestContext.AcceptLanguage())
+	}
 	return metadata.Pairs(pairs...)
 }
 

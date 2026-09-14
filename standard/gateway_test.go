@@ -1,7 +1,9 @@
 package standard
 
 import (
+	"context"
 	"net"
+	"net/http/httptest"
 	"testing"
 )
 
@@ -72,4 +74,15 @@ func TestGatewayEndpoint(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestGatewayRequestMetadataForwardsAcceptLanguage(t *testing.T) {
+	ctx := NewContext(context.Background(),
+		TraceIDKey, "trace-1",
+		AcceptLanguageKey, "zh-CN,en;q=0.8",
+	)
+	request := httptest.NewRequest("GET", "/users", nil)
+	values := gatewayRequestMetadata(ctx, request)
+
+	assertMetadataValue(t, values, acceptLanguageMetadataKey, "zh-CN,en;q=0.8")
 }

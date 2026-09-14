@@ -169,6 +169,61 @@ func (x *FieldOptions) GetSensitive() bool {
 	return false
 }
 
+// 枚举值选项
+type EnumValueOptions struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// HandlePath 错误响应使用的 HTTP 状态码
+	HttpStatus int32 `protobuf:"varint,1,opt,name=http_status,json=httpStatus,proto3" json:"http_status,omitempty"`
+	// 英文默认错误文案，支持 Go text/template 变量
+	Message       string `protobuf:"bytes,2,opt,name=message,proto3" json:"message,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *EnumValueOptions) Reset() {
+	*x = EnumValueOptions{}
+	mi := &file_options_options_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *EnumValueOptions) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*EnumValueOptions) ProtoMessage() {}
+
+func (x *EnumValueOptions) ProtoReflect() protoreflect.Message {
+	mi := &file_options_options_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use EnumValueOptions.ProtoReflect.Descriptor instead.
+func (*EnumValueOptions) Descriptor() ([]byte, []int) {
+	return file_options_options_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *EnumValueOptions) GetHttpStatus() int32 {
+	if x != nil {
+		return x.HttpStatus
+	}
+	return 0
+}
+
+func (x *EnumValueOptions) GetMessage() string {
+	if x != nil {
+		return x.Message
+	}
+	return ""
+}
+
 var file_options_options_proto_extTypes = []protoimpl.ExtensionInfo{
 	{
 		ExtendedType:  (*descriptorpb.MethodOptions)(nil),
@@ -194,6 +249,14 @@ var file_options_options_proto_extTypes = []protoimpl.ExtensionInfo{
 		Tag:           "bytes,202609127,opt,name=field",
 		Filename:      "options/options.proto",
 	},
+	{
+		ExtendedType:  (*descriptorpb.EnumValueOptions)(nil),
+		ExtensionType: (*EnumValueOptions)(nil),
+		Field:         202609126,
+		Name:          "server.options.enum_value",
+		Tag:           "bytes,202609126,opt,name=enum_value",
+		Filename:      "options/options.proto",
+	},
 }
 
 // Extension fields to descriptorpb.MethodOptions.
@@ -214,6 +277,12 @@ var (
 	E_Field = &file_options_options_proto_extTypes[2]
 )
 
+// Extension fields to descriptorpb.EnumValueOptions.
+var (
+	// optional server.options.EnumValueOptions enum_value = 202609126;
+	E_EnumValue = &file_options_options_proto_extTypes[3]
+)
+
 var File_options_options_proto protoreflect.FileDescriptor
 
 const file_options_options_proto_rawDesc = "" +
@@ -225,10 +294,16 @@ const file_options_options_proto_rawDesc = "" +
 	"\bskip_log\x18\x03 \x01(\bR\askipLog\"\x10\n" +
 	"\x0eMessageOptions\",\n" +
 	"\fFieldOptions\x12\x1c\n" +
-	"\tsensitive\x18\x01 \x01(\bR\tsensitive:X\n" +
+	"\tsensitive\x18\x01 \x01(\bR\tsensitive\"M\n" +
+	"\x10EnumValueOptions\x12\x1f\n" +
+	"\vhttp_status\x18\x01 \x01(\x05R\n" +
+	"httpStatus\x12\x18\n" +
+	"\amessage\x18\x02 \x01(\tR\amessage:X\n" +
 	"\x06method\x12\x1e.google.protobuf.MethodOptions\x18\xe9\xa3\xce` \x01(\v2\x1d.server.options.MethodOptionsR\x06method:\\\n" +
 	"\amessage\x12\x1f.google.protobuf.MessageOptions\x18\xe8\xa3\xce` \x01(\v2\x1e.server.options.MessageOptionsR\amessage:T\n" +
-	"\x05field\x12\x1d.google.protobuf.FieldOptions\x18\xe7\xa3\xce` \x01(\v2\x1c.server.options.FieldOptionsR\x05fieldB\x9d\x01\n" +
+	"\x05field\x12\x1d.google.protobuf.FieldOptions\x18\xe7\xa3\xce` \x01(\v2\x1c.server.options.FieldOptionsR\x05field:e\n" +
+	"\n" +
+	"enum_value\x12!.google.protobuf.EnumValueOptions\x18\xe6\xa3\xce` \x01(\v2 .server.options.EnumValueOptionsR\tenumValueB\x9d\x01\n" +
 	"\x12com.server.optionsB\fOptionsProtoP\x01Z github.com/go-sdk/server/options\xa2\x02\x03SOX\xaa\x02\x0eServer.Options\xca\x02\x0eServer\\Options\xe2\x02\x1aServer\\Options\\GPBMetadata\xea\x02\x0fServer::Optionsb\x06proto3"
 
 var (
@@ -243,26 +318,30 @@ func file_options_options_proto_rawDescGZIP() []byte {
 	return file_options_options_proto_rawDescData
 }
 
-var file_options_options_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
+var file_options_options_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
 var file_options_options_proto_goTypes = []any{
-	(*MethodOptions)(nil),               // 0: server.options.MethodOptions
-	(*MessageOptions)(nil),              // 1: server.options.MessageOptions
-	(*FieldOptions)(nil),                // 2: server.options.FieldOptions
-	(*descriptorpb.MethodOptions)(nil),  // 3: google.protobuf.MethodOptions
-	(*descriptorpb.MessageOptions)(nil), // 4: google.protobuf.MessageOptions
-	(*descriptorpb.FieldOptions)(nil),   // 5: google.protobuf.FieldOptions
+	(*MethodOptions)(nil),                 // 0: server.options.MethodOptions
+	(*MessageOptions)(nil),                // 1: server.options.MessageOptions
+	(*FieldOptions)(nil),                  // 2: server.options.FieldOptions
+	(*EnumValueOptions)(nil),              // 3: server.options.EnumValueOptions
+	(*descriptorpb.MethodOptions)(nil),    // 4: google.protobuf.MethodOptions
+	(*descriptorpb.MessageOptions)(nil),   // 5: google.protobuf.MessageOptions
+	(*descriptorpb.FieldOptions)(nil),     // 6: google.protobuf.FieldOptions
+	(*descriptorpb.EnumValueOptions)(nil), // 7: google.protobuf.EnumValueOptions
 }
 var file_options_options_proto_depIdxs = []int32{
-	3, // 0: server.options.method:extendee -> google.protobuf.MethodOptions
-	4, // 1: server.options.message:extendee -> google.protobuf.MessageOptions
-	5, // 2: server.options.field:extendee -> google.protobuf.FieldOptions
-	0, // 3: server.options.method:type_name -> server.options.MethodOptions
-	1, // 4: server.options.message:type_name -> server.options.MessageOptions
-	2, // 5: server.options.field:type_name -> server.options.FieldOptions
-	6, // [6:6] is the sub-list for method output_type
-	6, // [6:6] is the sub-list for method input_type
-	3, // [3:6] is the sub-list for extension type_name
-	0, // [0:3] is the sub-list for extension extendee
+	4, // 0: server.options.method:extendee -> google.protobuf.MethodOptions
+	5, // 1: server.options.message:extendee -> google.protobuf.MessageOptions
+	6, // 2: server.options.field:extendee -> google.protobuf.FieldOptions
+	7, // 3: server.options.enum_value:extendee -> google.protobuf.EnumValueOptions
+	0, // 4: server.options.method:type_name -> server.options.MethodOptions
+	1, // 5: server.options.message:type_name -> server.options.MessageOptions
+	2, // 6: server.options.field:type_name -> server.options.FieldOptions
+	3, // 7: server.options.enum_value:type_name -> server.options.EnumValueOptions
+	8, // [8:8] is the sub-list for method output_type
+	8, // [8:8] is the sub-list for method input_type
+	4, // [4:8] is the sub-list for extension type_name
+	0, // [0:4] is the sub-list for extension extendee
 	0, // [0:0] is the sub-list for field type_name
 }
 
@@ -277,8 +356,8 @@ func file_options_options_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_options_options_proto_rawDesc), len(file_options_options_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   3,
-			NumExtensions: 3,
+			NumMessages:   4,
+			NumExtensions: 4,
 			NumServices:   0,
 		},
 		GoTypes:           file_options_options_proto_goTypes,

@@ -59,31 +59,56 @@ Gateway 成功响应统一将 Protobuf 消息放在 `data` 下。成功码为零
 }
 ```
 
-失败响应保留 gRPC `code`、`message` 和结构化 `details`，并增加业务定义的 `domain` 和 `reason`。`details` 固定为最后一个字段，未包含结构化详情时输出空数组：
+失败响应保留 gRPC `code`、`message` 和结构化 `details`，并增加业务错误码 `domain` 和本地化文案 `reason`。`details` 固定为最后一个字段，未包含结构化详情时输出空数组：
 
 ```json
 {
   "code": 3,
   "message": "invalid parameter",
-  "domain": "USER_1001",
-  "reason": "user.name.required",
+  "domain": "1000002",
+  "reason": "文件 report.pdf 不存在",
   "details": []
 }
 ```
 
-业务代码通过 `RespError` 构造可同时供原生 gRPC 和 Gateway 使用的错误：
+业务错误码通过枚举定义。枚举数字值写入 `domain`，`message` 是英文默认文案；`http_status` 只覆盖 `HandlePath` 的 HTTP 状态码：
 
-```go
-return nil, standard.ErrInvalidParam.
-	WithDomainReason("USER_1001", "user.name.required").
-	WithDetails(&errdetails.BadRequest{
-		FieldViolations: []*errdetails.BadRequest_FieldViolation{
-			{Field: "name", Description: "required"},
-		},
-	})
+```protobuf
+enum ErrorCode {
+  ERROR_CODE_UNSPECIFIED = 0;
+  ERROR_CODE_FILE_NOT_FOUND = 1000002 [
+    (server.options.enum_value).http_status = 404,
+    (server.options.enum_value).message = "file {{.Name}} not found"
+  ];
+}
 ```
 
-优先使用 `ErrInternal`、`ErrInvalidParam`、`ErrUnauthenticated`、`ErrNotFound`、`ErrPermissionDenied`、`ErrAlreadyExists`、`ErrResourceExhausted`、`ErrFailedPrecondition`、`ErrAborted` 和 `ErrUnavailable` 等不可变的内置错误模板，并通过 `WithMessage`、`WithDomainReason` 和 `WithDetails` 设置具体响应信息；只有缺少对应模板时才使用 `standard.NewError(code, message)`。链式方法返回副本，可以安全地被并发请求复用。`domain` 约定为业务错误码，`reason` 为后续 i18n 信息预留；它们通过 `google.rpc.ErrorInfo` 在 gRPC 中传递，Gateway 会提升到失败响应顶层，不在 `details` 中重复输出。`WithHTTPStatus` 只覆盖 `HandlePath` 错误响应的 HTTP 状态码，不改变原生 gRPC Code。
+业务代码以不可变的 `standard.Err*` 为基座，通过 `WithErrorCode` 绑定错误码，`WithData` 提供文案模板变量：
+
+```go
+return nil, standard.ErrNotFound.
+	WithErrorCode(common.ErrorCode_ERROR_CODE_FILE_NOT_FOUND).
+	WithData(map[string]any{"Name": "report.pdf"})
+```
+
+默认语言是英文。Server 根据 HTTP `Accept-Language` 或 gRPC `accept-language` metadata 选择翻译；目标语言不存在时回退到枚举 option 中的英文 `message`，英文文案缺失或模板渲染失败时回退到枚举名称。`reason` 是最终渲染结果，`domain` 是枚举数字值的十进制字符串。两者通过 `google.rpc.ErrorInfo` 在 gRPC 中传递，Gateway 会提升到失败响应顶层，不在 `details` 中重复输出。
+
+翻译目录由业务服务创建并注入，Server 不持有业务翻译文件。翻译消息 ID 使用 `domain` 的数字字符串：
+
+```go
+bundle := i18n.NewBundle(language.English)
+bundle.MustAddMessages(language.SimplifiedChinese, &i18n.Message{
+	ID:    "1000002",
+	Other: "文件 {{.Name}} 不存在",
+})
+
+server, err := standard.New(
+	standard.WithI18nBundle(bundle),
+	// ...
+)
+```
+
+优先使用 `ErrInternal`、`ErrInvalidParam`、`ErrUnauthenticated`、`ErrNotFound`、`ErrPermissionDenied`、`ErrAlreadyExists`、`ErrResourceExhausted`、`ErrFailedPrecondition`、`ErrAborted` 和 `ErrUnavailable` 等不可变的内置错误模板；只有缺少对应模板时才使用 `standard.NewError(code, message)`。`WithMessage`、`WithErrorCode`、`WithData`、`WithDomainReason`、`WithDetails` 和 `WithHTTPStatus` 都返回副本，可以安全地复用错误模板。`WithDomainReason` 保留给不使用错误码枚举的业务。`WithHTTPStatus` 不改变原生 gRPC Code。
 
 数据库、缓存或第三方 SDK 的错误可以通过 `ErrorConverter` 统一转换，而不让 Server 直接依赖具体驱动：
 
@@ -239,7 +264,8 @@ server, err := standard.New(
 | `WithHTTPServerOptions`  | 调整 HTTP Server 超时等参数，Handler 不允许替换   |
 | `WithUnaryInterceptors`  | 在标准校验和 Recovery 之间插入 unary interceptor  |
 | `WithStreamInterceptors` | 在标准校验和 Recovery 之间插入 stream interceptor |
-| `WithErrorConverters`    | 将数据库等应用依赖错误转换为 `RespError`           |
+| `WithErrorConverters`    | 将数据库等应用依赖错误转换为 `RespError`          |
+| `WithI18nBundle`         | 注入业务错误文案的 go-i18n 翻译目录               |
 | `WithGRPCRegister`       | 注册真实 gRPC 服务                                |
 | `WithGatewayRegister`    | 注册 `google.api.http` 生成的 Gateway endpoint    |
 | `WithLogger`             | 替换默认的 `core/logx` gRPC 日志适配器            |
@@ -254,7 +280,7 @@ gRPC interceptor 顺序为：
 Request Context -> Logging -> Payload Logging -> JWT Auth -> Protovalidate -> 自定义 Interceptor -> Error Converter -> Recovery
 ```
 
-- Request Context 对外使用 `X-Request-Id` 请求头和 gRPC `x-request-id` metadata 接收与回写链路标识；内部统一命名为 TraceID（`standard.TraceIDKey`，日志字段 `trace-id`），缺失时生成 UUID v7，并在同一进程内透传。每次请求进入服务时生成新的 SpanID（`standard.SpanIDKey`，日志字段 `span-id`），标识本服务内单次请求到响应的处理，不向下游透传，也不出现在任何响应中。TraceID、SpanID、调用深度、客户端 IP、content-type 和 user-agent 会写入 `standard.Context`。
+- Request Context 对外使用 `X-Request-Id` 请求头和 gRPC `x-request-id` metadata 接收与回写链路标识；内部统一命名为 TraceID（`standard.TraceIDKey`，日志字段 `trace-id`），缺失时生成 UUID v7，并在同一进程内透传。每次请求进入服务时生成新的 SpanID（`standard.SpanIDKey`，日志字段 `span-id`），标识本服务内单次请求到响应的处理，不向下游透传，也不出现在任何响应中。TraceID、SpanID、调用深度、客户端 IP、content-type、user-agent 和原始 `Accept-Language` 会写入 `standard.Context`，语言偏好还会透传给下游 gRPC 服务。
 - `core/logx.Ctx(ctx)` 自动携带 `trace-id`、`span-id` 和 depth；业务代码通过 `standard.FromContext(ctx)` 读取请求参数和 JWT Claims。
 - Logging 记录协议、方法、状态和耗时；Payload Logging 分别输出 `grpc request` 和 `grpc response`，不记录认证头、JWT 原文或完整 metadata。
 - Payload Logging 的 `content_length` 是 `proto.Size` 得到的逻辑消息长度，不代表压缩和 HTTP/2 帧编码后的网络字节数。
@@ -273,6 +299,7 @@ spanID := requestContext.SpanID()
 clientIP := requestContext.ClientIP()
 depth := requestContext.Depth()
 claims := requestContext.JWT()
+acceptLanguage := requestContext.AcceptLanguage()
 ```
 
 `TraceID` 是跨服务透传的链路标识，对外线上协议固定为 `X-Request-Id` 请求头和 gRPC `x-request-id` metadata；`SpanID` 由每个服务在请求入口生成，只标识本服务内这一次请求到响应的处理，仅随日志输出，不随出站调用传递，也不写入 HTTP 响应头或 gRPC 响应 metadata。HTTP 响应只会写一个 `X-Request-Id`；Gateway 不透传任何 gRPC 响应头，因此 HTTP 响应中不会出现 `Grpc-Metadata-` 前缀的头或重复的 `X-Request-Id`。

@@ -4,6 +4,7 @@ import (
 	"context"
 	"reflect"
 
+	"github.com/nicksnyder/go-i18n/v2/i18n"
 	"google.golang.org/grpc"
 )
 
@@ -20,7 +21,7 @@ func (f ErrorConvertFunc) Convert(err error) (RespError, bool) {
 	return f(err)
 }
 
-func unaryErrorConverterInterceptor(converters []ErrorConverter) grpc.UnaryServerInterceptor {
+func unaryErrorConverterInterceptor(converters []ErrorConverter, bundle *i18n.Bundle) grpc.UnaryServerInterceptor {
 	return func(
 		ctx context.Context,
 		req any,
@@ -28,18 +29,18 @@ func unaryErrorConverterInterceptor(converters []ErrorConverter) grpc.UnaryServe
 		handler grpc.UnaryHandler,
 	) (any, error) {
 		response, err := handler(ctx, req)
-		return response, convertResponseError(err, converters)
+		return response, localizeResponseError(ctx, convertResponseError(err, converters), bundle)
 	}
 }
 
-func streamErrorConverterInterceptor(converters []ErrorConverter) grpc.StreamServerInterceptor {
+func streamErrorConverterInterceptor(converters []ErrorConverter, bundle *i18n.Bundle) grpc.StreamServerInterceptor {
 	return func(
 		srv any,
 		stream grpc.ServerStream,
 		info *grpc.StreamServerInfo,
 		handler grpc.StreamHandler,
 	) error {
-		return convertResponseError(handler(srv, stream), converters)
+		return localizeResponseError(stream.Context(), convertResponseError(handler(srv, stream), converters), bundle)
 	}
 }
 

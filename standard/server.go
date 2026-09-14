@@ -139,7 +139,7 @@ func newGRPCServer(cfg config) (*grpc.Server, error) {
 		grpcprotovalidate.UnaryServerInterceptor(validator),
 	}
 	unaryInterceptors = append(unaryInterceptors, cfg.unaryInterceptors...)
-	unaryInterceptors = append(unaryInterceptors, unaryErrorConverterInterceptor(cfg.errorConverters))
+	unaryInterceptors = append(unaryInterceptors, unaryErrorConverterInterceptor(cfg.errorConverters, cfg.i18nBundle))
 	unaryInterceptors = append(unaryInterceptors, grpcrecovery.UnaryServerInterceptor(recoveryOption))
 	streamInterceptors := []grpc.StreamServerInterceptor{
 		streamRequestContextInterceptor(),
@@ -152,7 +152,7 @@ func newGRPCServer(cfg config) (*grpc.Server, error) {
 		grpcprotovalidate.StreamServerInterceptor(validator),
 	}
 	streamInterceptors = append(streamInterceptors, cfg.streamInterceptors...)
-	streamInterceptors = append(streamInterceptors, streamErrorConverterInterceptor(cfg.errorConverters))
+	streamInterceptors = append(streamInterceptors, streamErrorConverterInterceptor(cfg.errorConverters, cfg.i18nBundle))
 	streamInterceptors = append(streamInterceptors, grpcrecovery.StreamServerInterceptor(recoveryOption))
 
 	grpcOptions := append([]grpc.ServerOption{}, cfg.grpcOptions...)

@@ -10,13 +10,14 @@ import (
 )
 
 const (
-	TraceIDKey     = "trace-id"
-	SpanIDKey      = "span-id"
-	JWTKey         = "jwt"
-	DepthKey       = "x-depth"
-	ClientIPKey    = "client-ip"
-	ContentTypeKey = "content-type"
-	UserAgentKey   = "user-agent"
+	TraceIDKey        = "trace-id"
+	SpanIDKey         = "span-id"
+	JWTKey            = "jwt"
+	DepthKey          = "x-depth"
+	ClientIPKey       = "client-ip"
+	ContentTypeKey    = "content-type"
+	UserAgentKey      = "user-agent"
+	AcceptLanguageKey = "accept-language"
 )
 
 type contextKey struct{}
@@ -93,6 +94,9 @@ func (c *Context) ClientIP() string { return c.String(ClientIPKey) }
 func (c *Context) ContentType() string { return c.String(ContentTypeKey) }
 
 func (c *Context) UserAgent() string { return c.String(UserAgentKey) }
+
+// AcceptLanguage 返回请求携带的原始语言偏好。
+func (c *Context) AcceptLanguage() string { return c.String(AcceptLanguageKey) }
 
 // JWT 返回鉴权中间件验证后的 Claims 副本。
 func (c *Context) JWT() jwt.MapClaims {

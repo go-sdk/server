@@ -17,14 +17,15 @@ import (
 
 const (
 	// traceIDHeader 和 traceIDMetadataKey 是跨服务透传的线上协议：对外统一接收和返回 X-Request-Id。
-	traceIDHeader          = "X-Request-ID"
-	traceIDMetadataKey     = "x-request-id"
-	clientIPMetadataKey    = "x-client-ip"
-	contentTypeMetadataKey = "x-content-type"
-	userAgentMetadataKey   = "x-user-agent"
-	depthMetadataKey       = "x-depth"
-	depthHeader            = "X-Depth"
-	traceIDMaxLength       = 128
+	traceIDHeader             = "X-Request-ID"
+	traceIDMetadataKey        = "x-request-id"
+	clientIPMetadataKey       = "x-client-ip"
+	contentTypeMetadataKey    = "x-content-type"
+	userAgentMetadataKey      = "x-user-agent"
+	acceptLanguageMetadataKey = "accept-language"
+	depthMetadataKey          = "x-depth"
+	depthHeader               = "X-Depth"
+	traceIDMaxLength          = 128
 )
 
 func normalizeTraceID(traceID string) string {
@@ -57,6 +58,7 @@ func httpRequestContextMiddleware(next http.Handler) http.Handler {
 			remoteIP(r.RemoteAddr),
 			r.Header.Get("Content-Type"),
 			r.UserAgent(),
+			r.Header.Get("Accept-Language"),
 			parseDepth(r.Header.Get(depthHeader)),
 		)
 		ctx = contextWithAuthorization(ctx, r.Header.Get("Authorization"))
@@ -99,19 +101,21 @@ func grpcRequestContext(ctx context.Context) (context.Context, string, string) {
 	if userAgent == "" {
 		userAgent = firstMetadataValue(ctx, "user-agent")
 	}
+	acceptLanguage := firstMetadataValue(ctx, acceptLanguageMetadataKey)
 	spanID := newSpanID()
-	ctx = requestContext(ctx, traceID, spanID, clientIP, contentType, userAgent, parseDepth(firstMetadataValue(ctx, depthMetadataKey)))
+	ctx = requestContext(ctx, traceID, spanID, clientIP, contentType, userAgent, acceptLanguage, parseDepth(firstMetadataValue(ctx, depthMetadataKey)))
 	ctx = contextWithAuthorization(ctx, firstMetadataValue(ctx, "authorization"))
 	return ctx, traceID, spanID
 }
 
-func requestContext(ctx context.Context, traceID, spanID, clientIP, contentType, userAgent string, depth int) context.Context {
+func requestContext(ctx context.Context, traceID, spanID, clientIP, contentType, userAgent, acceptLanguage string, depth int) context.Context {
 	ctx = NewContext(ctx,
 		TraceIDKey, traceID,
 		SpanIDKey, spanID,
 		ClientIPKey, clientIP,
 		ContentTypeKey, contentType,
 		UserAgentKey, userAgent,
+		AcceptLanguageKey, acceptLanguage,
 		DepthKey, depth,
 	)
 	logger := logx.Ctx(ctx).With().Str(TraceIDKey, traceID).Str(SpanIDKey, spanID).Int("depth", depth).Logger()

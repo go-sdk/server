@@ -1,0 +1,12 @@
+syntax = "proto3";
+
+package common;
+
+import "options/options.proto";
+
+enum ErrorCode {
+  ERROR_CODE_UNSPECIFIED = 0;
+
+  ERROR_CODE_INVALID_FILE_NAME = 1000001 [(server.options.enum_value).message = "invalid file name"];
+  ERROR_CODE_FILE_NOT_FOUND = 1000002 [(server.options.enum_value).message = "file not found"];
+}

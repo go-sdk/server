@@ -15,6 +15,7 @@ func TestNewContext(t *testing.T) {
 		ClientIPKey, "127.0.0.1",
 		ContentTypeKey, "application/grpc",
 		UserAgentKey, "test-agent",
+		AcceptLanguageKey, "zh-CN,en;q=0.8",
 		JWTKey, jwt.MapClaims{"sub": "user-1"},
 	)
 	requestContext := FromContext(ctx)
@@ -35,6 +36,9 @@ func TestNewContext(t *testing.T) {
 	}
 	if requestContext.UserAgent() != "test-agent" {
 		t.Fatalf("unexpected user agent: %q", requestContext.UserAgent())
+	}
+	if requestContext.AcceptLanguage() != "zh-CN,en;q=0.8" {
+		t.Fatalf("unexpected accept language: %q", requestContext.AcceptLanguage())
 	}
 	claims := requestContext.JWT()
 	claims["sub"] = "changed"

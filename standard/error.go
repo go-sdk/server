@@ -1,13 +1,18 @@
 package standard
 
 import (
+	"maps"
 	"reflect"
+	"strconv"
 
 	"google.golang.org/genproto/googleapis/rpc/errdetails"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/protoadapt"
+	"google.golang.org/protobuf/reflect/protoreflect"
+
+	serveroptions "github.com/go-sdk/server/options"
 )
 
 // RespError 描述可同时供 gRPC 和 Gateway 返回的业务错误。
@@ -17,6 +22,10 @@ type RespError struct {
 	domain  string
 	reason  string
 	details []proto.Message
+	data    map[string]any
+
+	defaultMessage string
+	hasErrorCode   bool
 
 	httpStatus int
 }
@@ -65,6 +74,45 @@ func (e RespError) WithHTTPStatus(statusCode int) RespError {
 func (e RespError) WithDomainReason(domain, reason string) RespError {
 	e.domain = domain
 	e.reason = reason
+	e.defaultMessage = ""
+	e.hasErrorCode = false
+	return e
+}
+
+// WithErrorCode 从枚举选项读取业务错误码、英文默认文案和额外 HTTP 状态码。
+func (e RespError) WithErrorCode(errorCode protoreflect.Enum) RespError {
+	if errorCode == nil {
+		return e
+	}
+	number := errorCode.Number()
+	e.domain = strconv.FormatInt(int64(number), 10)
+	e.reason = e.domain
+	e.defaultMessage = ""
+	e.hasErrorCode = true
+
+	valueDescriptor := errorCode.Descriptor().Values().ByNumber(number)
+	if valueDescriptor == nil {
+		return e
+	}
+	e.reason = string(valueDescriptor.Name())
+	valueOptions := valueDescriptor.Options()
+	if !proto.HasExtension(valueOptions, serveroptions.E_EnumValue) {
+		return e
+	}
+	options, ok := proto.GetExtension(valueOptions, serveroptions.E_EnumValue).(*serveroptions.EnumValueOptions)
+	if !ok || options == nil {
+		return e
+	}
+	e.defaultMessage = options.GetMessage()
+	if options.GetHttpStatus() > 0 {
+		e.httpStatus = int(options.GetHttpStatus())
+	}
+	return e
+}
+
+// WithData 设置错误文案模板使用的变量，并复制数据以保持错误模板不可变。
+func (e RespError) WithData(data map[string]any) RespError {
+	e.data = maps.Clone(data)
 	return e
 }
 
