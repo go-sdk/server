@@ -7,7 +7,7 @@ require (
 	buf.build/go/protovalidate v1.4.0
 	github.com/BurntSushi/toml v1.6.0
 	github.com/elastic/gmux v0.3.3
-	github.com/go-sdk/core v1.4.1
+	github.com/go-sdk/core v1.4.2
 	github.com/golang-jwt/jwt/v5 v5.3.1
 	github.com/grpc-ecosystem/go-grpc-middleware/v2 v2.3.4
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.30.0
@@ -24,6 +24,8 @@ require (
 	cel.dev/cel-go v0.32.0 // indirect
 	cel.dev/expr v0.25.3 // indirect
 	github.com/antlr4-go/antlr/v4 v4.13.1 // indirect
+	github.com/fsnotify/fsnotify v1.10.1 // indirect
+	github.com/go-viper/mapstructure/v2 v2.5.0 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/mattn/go-colorable v0.1.15 // indirect
 	github.com/mattn/go-isatty v0.0.24 // indirect

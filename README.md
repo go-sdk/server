@@ -39,7 +39,7 @@ responsePaging := paging.WithTotal(100)
 
 `NewPaging` 使用与分页计算方法相同的默认值构造 `Paging`：页码非正数时按第 `1` 页处理，每页数量非正数时使用 `common.DefaultLimit`。`GetOffsetLimit`、`GetOffset` 和 `GetLimit` 对手动构造的 `Paging` 也使用相同规则；`WithTotal` 返回新的分页对象，不修改原请求。BSR 自动生成的 Go SDK 不包含 `common/common.go` 中的手写方法；需要这些方法的 Go 项目应依赖 `github.com/go-sdk/server/common`。
 
-tag CI 会将根模块中 `includes` 声明的公共 Proto 统一发布到 `buf.build/go-sdk/server`，未命名的测试模块不会发布。后续增加公共 Proto 目录时，需要同步将该目录加入 `buf.yaml` 的 `includes`。
+`master` CI 会持续将根模块中 `includes` 声明的公共 Proto 发布到 `buf.build/go-sdk/server` 的 `master` label，tag CI 则发布对应版本 label；未命名的测试模块不会发布。后续增加公共 Proto 目录时，需要同步将该目录加入 `buf.yaml` 的 `includes`。
 
 ## 服务模型
 

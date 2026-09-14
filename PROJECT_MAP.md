@@ -65,7 +65,7 @@ server/
 - `options/options.proto` 定义 `server.options` 方法、消息和字段扩展。
 - Buf 生成代码分别落在 `common` 和 `options` Go 包；`common/common.go` 为手写文件，不得由生成或清理流程覆盖。
 - 业务 Proto 通过 `common/common.proto` 和 `options/options.proto` 引用公共定义；Go 代码从 `github.com/go-sdk/server/common` 使用生成类型和手写辅助方法。
-- tag CI 从 workspace 根目录推送全部命名模块，并排除 `tests/proto` 这类未命名的本地测试模块。后续新增对外 Proto 目录时，将其加入根模块的 `includes` 即可沿用同一发布流程。
+- `master` CI 持续发布 `master` label，tag CI 发布对应版本 label；两者都从 workspace 根目录推送全部命名模块，并排除 `tests/proto` 这类未命名的本地测试模块。后续新增对外 Proto 目录时，将其加入根模块的 `includes` 即可沿用同一发布流程。
 
 ## 请求链路
 
