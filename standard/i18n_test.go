@@ -56,6 +56,34 @@ func TestLocalizeResponseErrorFallsBackToEnumName(t *testing.T) {
 	}
 }
 
+func TestLocalizeResponseErrorFallsBackToEnumNameWhenTemplateDataMissing(t *testing.T) {
+	bundle := i18n.NewBundle(language.English)
+	bundle.MustAddMessages(language.SimplifiedChinese, &i18n.Message{
+		ID:    "1000002",
+		Other: "文件 {{.Name}} 不存在",
+	})
+	ctx := NewContext(context.Background(), AcceptLanguageKey, "zh-CN")
+	err := localizeResponseError(ctx, ErrNotFound.
+		WithErrorCode(commonpb.ErrorCode_ERROR_CODE_FILE_NOT_FOUND), bundle)
+
+	info := errorInfoFromError(t, err)
+	if info.GetDomain() != "1000002" || info.GetReason() != "ERROR_CODE_FILE_NOT_FOUND" {
+		t.Fatalf("unexpected enum fallback: %v", info)
+	}
+}
+
+func TestLocalizeResponseErrorFallsBackToEnumNameWhenTemplateVariableMissing(t *testing.T) {
+	ctx := NewContext(context.Background(), AcceptLanguageKey, "zh-CN")
+	err := localizeResponseError(ctx, ErrNotFound.
+		WithErrorCode(commonpb.ErrorCode_ERROR_CODE_FILE_NOT_FOUND).
+		WithData(map[string]any{"Other": "x"}), i18n.NewBundle(language.English))
+
+	info := errorInfoFromError(t, err)
+	if info.GetDomain() != "1000002" || info.GetReason() != "ERROR_CODE_FILE_NOT_FOUND" {
+		t.Fatalf("unexpected enum fallback: %v", info)
+	}
+}
+
 func errorInfoFromError(t *testing.T, err error) *errdetails.ErrorInfo {
 	t.Helper()
 	details := status.Convert(err).Details()

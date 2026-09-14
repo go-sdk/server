@@ -6,10 +6,17 @@ import (
 
 	"github.com/go-sdk/core/errx"
 	"github.com/nicksnyder/go-i18n/v2/i18n"
+	"github.com/nicksnyder/go-i18n/v2/i18n/template"
 	"golang.org/x/text/language"
 )
 
-var englishFallbackBundle = i18n.NewBundle(language.English)
+var (
+	englishFallbackBundle = i18n.NewBundle(language.English)
+
+	// errorTextParser 要求模板引用的变量必须由 WithData 完整提供，
+	// 缺失变量按渲染失败处理，而不是把 "<no value>" 写入响应。
+	errorTextParser = &template.TextParser{Option: "missingkey=error"}
+)
 
 func localizeResponseError(ctx context.Context, err error, bundle *i18n.Bundle) error {
 	if err == nil {
@@ -20,7 +27,7 @@ func localizeResponseError(ctx context.Context, err error, bundle *i18n.Bundle) 
 		return err
 	}
 
-	// reason 在任何翻译或模板错误下都保持为稳定的枚举名称。
+	// reason 在翻译错误或模板渲染失败（含模板变量缺失）时保持为稳定的枚举名称。
 	localized := responseError
 	localized.reason = responseError.reason
 	if strings.TrimSpace(responseError.defaultMessage) == "" {
@@ -33,7 +40,8 @@ func localizeResponseError(ctx context.Context, err error, bundle *i18n.Bundle) 
 			ID:    responseError.domain,
 			Other: responseError.defaultMessage,
 		},
-		TemplateData: responseError.data,
+		TemplateData:   responseError.data,
+		TemplateParser: errorTextParser,
 	}
 	if bundle != nil && strings.TrimSpace(acceptLanguage) != "" {
 		reason, resolvedLanguage, localizeErr := i18n.NewLocalizer(bundle, acceptLanguage).LocalizeWithTag(config)

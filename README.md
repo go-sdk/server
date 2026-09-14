@@ -91,7 +91,7 @@ return nil, standard.ErrNotFound.
 	WithData(map[string]any{"Name": "report.pdf"})
 ```
 
-默认语言是英文。Server 根据 HTTP `Accept-Language` 或 gRPC `accept-language` metadata 选择翻译；目标语言不存在时回退到枚举 option 中的英文 `message`，英文文案缺失或模板渲染失败时回退到枚举名称。`reason` 是最终渲染结果，`domain` 是枚举数字值的十进制字符串。两者通过 `google.rpc.ErrorInfo` 在 gRPC 中传递，Gateway 会提升到失败响应顶层，不在 `details` 中重复输出。
+默认语言是英文。Server 根据 HTTP `Accept-Language` 或 gRPC `accept-language` metadata 选择翻译；目标语言不存在时回退到枚举 option 中的英文 `message`，英文文案缺失或模板渲染失败（包括缺少 `WithData` 提供的模板变量）时回退到枚举名称。`reason` 是最终渲染结果，`domain` 是枚举数字值的十进制字符串。两者通过 `google.rpc.ErrorInfo` 在 gRPC 中传递，Gateway 会提升到失败响应顶层，不在 `details` 中重复输出。
 
 翻译目录由业务服务创建并注入，Server 不持有业务翻译文件。翻译消息 ID 使用 `domain` 的数字字符串：
 
