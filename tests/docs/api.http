@@ -1,0 +1,163 @@
+# JetBrains HTTP Client 接口测试。
+# 运行前启动 tests/server，并选择 local 环境；local.token 使用与
+# tests/server/main.go 相同的测试密钥 12345678 签发。
+
+### 创建用户
+# @name createUser
+POST {{addr}}/core/v1/users
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "foo",
+  "email": "bar@example.com"
+}
+
+> {%
+  client.test("创建用户返回统一成功响应", function () {
+    const body = response.body;
+    client.assert(response.status === 200, "HTTP 状态码应为 200");
+    client.assert(body["data"] !== undefined, "响应应包含 data");
+    client.assert(body["data"]["id"] !== undefined && body["data"]["id"] !== "", "用户 ID 不应为空");
+  });
+%}
+
+### 创建用户参数校验失败
+# @name createUserValidationError
+POST {{addr}}/core/v1/users
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "",
+  "email": "bar@example.com"
+}
+
+> {%
+  client.test("参数校验失败返回 InvalidArgument", function () {
+    const body = response.body;
+    client.assert(response.status === 400, "HTTP 状态码应为 400");
+    client.assert(body["code"] === 3, "gRPC 状态码应为 InvalidArgument");
+    client.assert(body["message"] !== "", "错误消息不应为空");
+    client.assert(Array.isArray(body["details"]), "details 应为数组");
+  });
+%}
+
+### 查询账单分页
+# @name listBills
+GET {{addr}}/biz/v1/bills?paging.page=2&paging.pageSize=10
+Authorization: Bearer {{token}}
+
+> {%
+  client.test("账单分页参数经过 Gateway 传递", function () {
+    const body = response.body;
+    client.assert(response.status === 200, "HTTP 状态码应为 200");
+    client.assert(body["data"]["paging"]["page"] === 2, "页码应为 2");
+    client.assert(body["data"]["paging"]["pageSize"] === 10, "每页数量应为 10");
+  });
+%}
+
+### 未携带 JWT
+# @name listBillsUnauthenticated
+GET {{addr}}/biz/v1/bills
+
+> {%
+  client.test("受保护接口拒绝未认证请求", function () {
+    const body = response.body;
+    client.assert(response.status === 401, "HTTP 状态码应为 401");
+    client.assert(body["code"] === 16, "gRPC 状态码应为 Unauthenticated");
+    client.assert(Array.isArray(body["details"]), "details 应为数组");
+  });
+%}
+
+### 上传文件
+# @name uploadFile
+POST {{addr}}/upload
+Authorization: Bearer {{token}}
+Content-Type: multipart/form-data; boundary=HTTPClientBoundary
+
+--HTTPClientBoundary
+Content-Disposition: form-data; name="file"; filename="hello.txt"
+Content-Type: text/plain
+
+hello, files
+--HTTPClientBoundary--
+
+> {%
+  client.test("上传文件返回文件元数据", function () {
+    const body = response.body;
+    client.assert(response.status === 200, "HTTP 状态码应为 200");
+    client.assert(body["name"] === "hello.txt", "文件名应为 hello.txt");
+    client.assert(body["size"] === 12, "文件大小应为 12 字节");
+  });
+%}
+
+### 下载已上传文件
+# @name downloadFile
+GET {{addr}}/download/hello.txt
+Authorization: Bearer {{token}}
+
+> {%
+  client.test("下载接口返回附件", function () {
+    client.assert(response.status === 200, "HTTP 状态码应为 200");
+    client.assert(response.headers.valueOf("Content-Type") === "application/octet-stream", "Content-Type 应为二进制流");
+    client.assert(response.headers.valueOf("Content-Disposition").includes("hello.txt"), "下载文件名应为 hello.txt");
+    client.assert(response.headers.valueOf("Content-Length") === "12", "Content-Length 应为 12");
+  });
+%}
+
+### 中文文件不存在错误
+# @name downloadMissingFileZhCN
+GET {{addr}}/download/missing.txt
+Authorization: Bearer {{token}}
+Accept-Language: zh-CN
+
+> {%
+  client.test("文件不存在错误使用中文模板", function () {
+    const body = response.body;
+    client.assert(response.status === 404, "HTTP 状态码应为 404");
+    client.assert(body["code"] === 5, "gRPC 状态码应为 NotFound");
+    client.assert(body["domain"] === "1000002", "domain 应为文件不存在错误码");
+    client.assert(body["reason"] === "文件 missing.txt 不存在", "reason 应完成中文模板渲染");
+    client.assert(Array.isArray(body["details"]) && body["details"].length === 0, "details 应为空数组");
+  });
+%}
+
+### 不支持的语言回退英文
+# @name downloadMissingFileEnglishFallback
+GET {{addr}}/download/missing.txt
+Authorization: Bearer {{token}}
+Accept-Language: fr
+
+> {%
+  client.test("缺少目标语言时回退英文", function () {
+    const body = response.body;
+    client.assert(response.status === 404, "HTTP 状态码应为 404");
+    client.assert(body["domain"] === "1000002", "domain 应为文件不存在错误码");
+    client.assert(body["reason"] === "file missing.txt not found", "reason 应回退英文默认文案");
+  });
+%}
+
+### 非法文件名
+# @name uploadInvalidFileName
+POST {{addr}}/upload
+Authorization: Bearer {{token}}
+Accept-Language: zh-CN
+Content-Type: multipart/form-data; boundary=HTTPClientBoundary
+
+--HTTPClientBoundary
+Content-Disposition: form-data; name="file"; filename=".."
+Content-Type: text/plain
+
+x
+--HTTPClientBoundary--
+
+> {%
+  client.test("非法文件名返回本地化业务错误", function () {
+    const body = response.body;
+    client.assert(response.status === 400, "HTTP 状态码应为 400");
+    client.assert(body["code"] === 3, "gRPC 状态码应为 InvalidArgument");
+    client.assert(body["domain"] === "1000001", "domain 应为非法文件名错误码");
+    client.assert(body["reason"] === "无效的文件名", "reason 应为中文文案");
+  });
+%}

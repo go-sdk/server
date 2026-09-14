@@ -93,20 +93,29 @@ return nil, standard.ErrNotFound.
 
 默认语言是英文。Server 根据 HTTP `Accept-Language` 或 gRPC `accept-language` metadata 选择翻译；目标语言不存在时回退到枚举 option 中的英文 `message`，英文文案缺失或模板渲染失败（包括缺少 `WithData` 提供的模板变量）时回退到枚举名称。`reason` 是最终渲染结果，`domain` 是枚举数字值的十进制字符串。两者通过 `google.rpc.ErrorInfo` 在 gRPC 中传递，Gateway 会提升到失败响应顶层，不在 `details` 中重复输出。
 
-翻译目录由业务服务创建并注入，Server 不持有业务翻译文件。翻译消息 ID 使用 `domain` 的数字字符串：
+推荐由业务服务使用 TOML 文件维护翻译，并通过 `embed.FS` 注入。Server 自动以英文创建 Bundle、注册 TOML 解析器并递归加载全部 `.toml` 文件；翻译消息 ID 使用 `domain` 的数字字符串。例如 `locales/zh-CN.toml`：
+
+```toml
+["1000001"]
+other = "无效的文件名"
+
+["1000002"]
+other = "文件 {{.Name}} 不存在"
+```
+
+业务入口只需嵌入语言目录：
 
 ```go
-bundle := i18n.NewBundle(language.English)
-bundle.MustAddMessages(language.SimplifiedChinese, &i18n.Message{
-	ID:    "1000002",
-	Other: "文件 {{.Name}} 不存在",
-})
+//go:embed locales/*.toml
+var localeFS embed.FS
 
 server, err := standard.New(
-	standard.WithI18nBundle(bundle),
+	standard.WithI18nFS(localeFS),
 	// ...
 )
 ```
+
+语言标签从文件名读取，支持 `zh-CN.toml` 或 `active.zh-CN.toml`。没有 TOML 文件、文件名语言标签无效或内容解析失败时，`standard.New` 直接返回错误。英文默认文案继续来自错误码的 `message` option，不要求提供 `en.toml`。需要自行配置其他格式或复数规则时，可以继续使用 `WithI18nBundle` 注入完整 Bundle。
 
 优先使用 `ErrInternal`、`ErrInvalidParam`、`ErrUnauthenticated`、`ErrNotFound`、`ErrPermissionDenied`、`ErrAlreadyExists`、`ErrResourceExhausted`、`ErrFailedPrecondition`、`ErrAborted` 和 `ErrUnavailable` 等不可变的内置错误模板；只有缺少对应模板时才使用 `standard.NewError(code, message)`。`WithMessage`、`WithErrorCode`、`WithData`、`WithDomainReason`、`WithDetails` 和 `WithHTTPStatus` 都返回副本，可以安全地复用错误模板。`WithDomainReason` 保留给不使用错误码枚举的业务。`WithHTTPStatus` 不改变原生 gRPC Code。
 
@@ -198,6 +207,12 @@ err = server.HandlePath(
 
 配置 JWT 后，额外 HTTP 接口同样要求 `Authorization: Bearer <token>`，并可直接通过 `c.JWT()` 读取已验证的 Claims 和请求参数。鉴权失败和 Handler panic 也使用统一错误结构。额外接口没有 Protobuf MethodOptions，不能使用 `skip_auth`。
 
+## 示例接口测试
+
+`tests/docs/api.http` 提供可由 JetBrains HTTP Client 执行的示例接口测试，覆盖 Gateway 的创建、参数校验和分页响应，以及额外 HTTP 路由的上传、下载、鉴权和错误文案本地化。运行前启动 `tests/server`，并选择 `tests/docs/http-client.env.json` 中的 `local` 环境。
+
+`local.token` 仅用于本仓库示例服务，由与 `tests/server/main.go` 相同的测试密钥 `12345678` 签发。修改示例服务的 JWT 密钥时必须同步更新该 Token。上传和下载共享示例服务进程内的文件存储，因此下载成功用例需要先执行“上传文件”；重启服务后也需要重新上传。Protobuf 的零值字段默认不输出，分页用例只断言请求中实际指定的页码和每页数量。
+
 ## 启动与停止
 
 ```go
@@ -265,6 +280,7 @@ server, err := standard.New(
 | `WithUnaryInterceptors`  | 在标准校验和 Recovery 之间插入 unary interceptor  |
 | `WithStreamInterceptors` | 在标准校验和 Recovery 之间插入 stream interceptor |
 | `WithErrorConverters`    | 将数据库等应用依赖错误转换为 `RespError`          |
+| `WithI18nFS`             | 从 embed.FS 递归加载 TOML 错误文案                |
 | `WithI18nBundle`         | 注入业务错误文案的 go-i18n 翻译目录               |
 | `WithGRPCRegister`       | 注册真实 gRPC 服务                                |
 | `WithGatewayRegister`    | 注册 `google.api.http` 生成的 Gateway endpoint    |

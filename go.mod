@@ -5,6 +5,7 @@ go 1.27.0
 require (
 	buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.36.12-20260825204119-511051f7f437.2
 	buf.build/go/protovalidate v1.4.0
+	github.com/BurntSushi/toml v1.6.0
 	github.com/elastic/gmux v0.3.3
 	github.com/go-sdk/core v1.4.1
 	github.com/golang-jwt/jwt/v5 v5.3.1

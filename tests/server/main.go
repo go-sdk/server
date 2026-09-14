@@ -30,9 +30,9 @@ func main() {
 		standard.WithAddress(":8080"),
 		standard.WithReflection(),
 		standard.WithJWTSecret([]byte("12345678")),
-		// 注入错误文案翻译目录，错误响应按 Accept-Language 选择语言渲染 reason，
+		// 从 embed.FS 加载 TOML 错误文案，错误响应按 Accept-Language 选择语言渲染 reason，
 		// 未匹配的语言回退到错误码定义的英文默认文案
-		standard.WithI18nBundle(newErrorI18nBundle()),
+		standard.WithI18nFS(errorI18nFS),
 		standard.WithGRPCRegister(func(registrar grpc.ServiceRegistrar) {
 			corev1.RegisterUserServiceServer(registrar, &userService{})
 			bizv1.RegisterBillServiceServer(registrar, &billService{})

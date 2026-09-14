@@ -27,6 +27,7 @@ server/
 │   ├── http_handler.go             额外 HTTP 路由适配、鉴权和统一错误响应
 │   ├── error.go                    业务响应错误及内置错误模板
 │   ├── error_converter.go          应用依赖错误转换接口和 interceptor
+│   ├── i18n.go                     错误文案本地化及 embed TOML 加载
 │   ├── gateway.go                  Gateway 注册和回连 endpoint 解析
 │   ├── lifecycle.go                lifex 启动、异常退出和优雅停止
 │   ├── access_log.go               HTTP 访问日志
@@ -43,6 +44,7 @@ server/
 │   └── testserver/                 基于 bufconn 的标准测试服务器
 │       └── server.go               测试 Server、ClientConn 和自动清理
 ├── tests/
+│   ├── docs/                       JetBrains HTTP Client 接口测试和本地环境配置
 │   ├── pb/                         由 Buf 生成的测试及示例代码
 │   ├── openapi/                    由 Buf 生成的 Swagger 2.0 文档（openapi.swagger.yaml）
 │   ├── proto/                      带 google.api.http 和 buf.validate 的示例协议
@@ -93,6 +95,7 @@ Gateway 将成功的 Protobuf 消息放入 `data`，成功码为零且默认不�
 - `WithName` 设置可选的 Server 实例标识，用于生命周期日志和 Serve 异常，不修改进程级全局日志字段。
 - `WithGRPCRegister` 注册 gRPC 服务。
 - `WithGatewayRegister` 收集生成的 Gateway endpoint 注册函数。
+- `WithI18nFS` 以英文为默认语言，从传入的 `fs.FS` 递归加载 TOML 翻译文件；`WithI18nBundle` 保留为自定义 Bundle 的高级入口。
 - gmux 在 HTTP Handler 完成后配置，并返回供 `grpc.Server.Serve` 使用的虚拟 Listener。
 
 ### 路由
@@ -111,6 +114,7 @@ Gateway 将成功的 Protobuf 消息放入 `data`，成功码为零且默认不�
 - JWT Auth 使用 Option 注入的 HS256 密钥验证 Bearer Token，验证后的 Claims 写入 `standard.Context`；设置 `server.options.method.skip_auth` 的 RPC 跳过鉴权。
 - Protovalidate 执行 `buf.validate` 规则，对原生 gRPC 和注解生成的 Gateway 请求生效。
 - Error Converter 位于自定义 interceptor 和 Recovery 之间，按注册顺序将数据库等应用依赖错误转换为统一 `RespError`，随后根据请求语言渲染错误码文案；缺少目标语言时依次回退英文默认文案和枚举名称，未匹配错误原样返回。
+- TOML 翻译文件由业务服务嵌入，语言标签从文件名解析；空文件系统、非法语言标签和解析失败都在 Server 初始化阶段返回错误。
 - Recovery 位于 gRPC interceptor 链最内层；额外 HTTP Handler 由路由适配层恢复 panic 并写入统一 `ErrInternal` 响应，外层 HTTP Recovery 继续保护 Gateway。
 - Health Service 默认启用且不鉴权、不记录 payload；Reflection 仅在设置 Option 后启用。
 

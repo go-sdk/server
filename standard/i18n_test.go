@@ -3,6 +3,7 @@ package standard
 import (
 	"context"
 	"testing"
+	"testing/fstest"
 
 	"github.com/nicksnyder/go-i18n/v2/i18n"
 	"golang.org/x/text/language"
@@ -11,6 +12,52 @@ import (
 
 	commonpb "github.com/go-sdk/server/tests/pb/common"
 )
+
+func TestWithI18nFS(t *testing.T) {
+	messageFS := fstest.MapFS{
+		"locales/zh-CN.toml": {
+			Data: []byte("[\"1000002\"]\nother = \"文件 {{.Name}} 不存在\"\n"),
+		},
+		"locales/README.txt": {Data: []byte("ignored")},
+	}
+	cfg := defaultConfig()
+	if err := WithI18nFS(messageFS)(&cfg); err != nil {
+		t.Fatalf("load i18n file system: %v", err)
+	}
+	ctx := NewContext(context.Background(), AcceptLanguageKey, "zh-CN")
+	err := localizeResponseError(ctx, ErrNotFound.
+		WithErrorCode(commonpb.ErrorCode_ERROR_CODE_FILE_NOT_FOUND).
+		WithData(map[string]any{"Name": "report.pdf"}), cfg.i18nBundle)
+
+	info := errorInfoFromError(t, err)
+	if info.GetReason() != "文件 report.pdf 不存在" {
+		t.Fatalf("unexpected localized reason: %q", info.GetReason())
+	}
+}
+
+func TestWithI18nFSRejectsInvalidInput(t *testing.T) {
+	cfg := defaultConfig()
+	if err := WithI18nFS(nil)(&cfg); err == nil {
+		t.Fatal("expected nil i18n file system error")
+	}
+
+	tests := []struct {
+		name      string
+		messageFS fstest.MapFS
+	}{
+		{name: "empty", messageFS: fstest.MapFS{}},
+		{name: "invalid language", messageFS: fstest.MapFS{"locales/invalid_language.toml": {Data: []byte("message = \"value\"")}}},
+		{name: "invalid toml", messageFS: fstest.MapFS{"locales/zh-CN.toml": {Data: []byte("invalid = [")}}},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			cfg := defaultConfig()
+			if err := WithI18nFS(test.messageFS)(&cfg); err == nil {
+				t.Fatal("expected i18n file system error")
+			}
+		})
+	}
+}
 
 func TestLocalizeResponseError(t *testing.T) {
 	bundle := i18n.NewBundle(language.English)

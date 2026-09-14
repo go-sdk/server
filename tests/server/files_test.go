@@ -286,7 +286,7 @@ func TestFileStoreErrorLocalization(t *testing.T) {
 	}
 	server, err := standard.New(
 		standard.WithListener(listener),
-		standard.WithI18nBundle(newErrorI18nBundle()),
+		standard.WithI18nFS(errorI18nFS),
 	)
 	if err != nil {
 		_ = listener.Close()

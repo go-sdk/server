@@ -18,14 +18,14 @@ import (
 	corev1 "github.com/go-sdk/server/tests/pb/core/v1"
 )
 
-var testJWTSecret = []byte("test-secret")
+var testJWTSecret = []byte("12345678")
 
 func newServiceTestServer(t *testing.T) *testserver.Server {
 	t.Helper()
 	return testserver.New(t,
 		standard.WithJWTSecret(testJWTSecret),
 		// 与示例服务一致注入翻译目录，验证错误码文案的本地化链路
-		standard.WithI18nBundle(newErrorI18nBundle()),
+		standard.WithI18nFS(errorI18nFS),
 		standard.WithGRPCRegister(func(registrar grpc.ServiceRegistrar) {
 			corev1.RegisterUserServiceServer(registrar, &userService{})
 			bizv1.RegisterBillServiceServer(registrar, &billService{})
