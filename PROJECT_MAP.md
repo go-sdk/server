@@ -8,7 +8,7 @@
 
 ```text
 server/
-├── common/                       跨服务公共 Protobuf 类型和 Go 辅助方法（proto 包为 server.common）
+├── common/                         跨服务公共 Protobuf 类型和 Go 辅助方法（proto 包为 server.common）
 │   ├── common.proto                标识、元数据、动态属性、分页和时间范围定义
 │   ├── common.go                   公共类型构造方法和分页计算辅助方法
 │   ├── common.pb.go                生成的 Go 消息定义
