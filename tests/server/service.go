@@ -6,8 +6,8 @@ import (
 	"github.com/go-sdk/core/logx"
 	"github.com/go-sdk/core/seq"
 
+	"github.com/go-sdk/server/common"
 	bizv1 "github.com/go-sdk/server/tests/pb/biz/v1"
-	"github.com/go-sdk/server/tests/pb/common"
 	corev1 "github.com/go-sdk/server/tests/pb/core/v1"
 )
 
@@ -22,7 +22,7 @@ func (s *userService) Health(_ context.Context, _ *common.Empty) (*common.Empty,
 func (s *userService) Create(ctx context.Context, _ *corev1.CreateUserReq) (*common.Id, error) {
 	id := seq.NextID()
 	logx.Ctx(ctx).Info().Msgf("create user %s", id)
-	return &common.Id{Id: id}, nil
+	return common.NewId(id), nil
 }
 
 type billService struct {
@@ -30,5 +30,5 @@ type billService struct {
 }
 
 func (s *billService) List(_ context.Context, req *bizv1.ListBillReq) (*bizv1.ListBillResp, error) {
-	return &bizv1.ListBillResp{Paging: req.Paging}, nil
+	return &bizv1.ListBillResp{Paging: req.GetPaging().WithTotal(0)}, nil
 }

@@ -2,14 +2,16 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"io"
+	"mime"
 	"net/http"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"sync"
 
 	"github.com/go-sdk/core/errx"
+	"github.com/go-sdk/core/logx"
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 
 	"github.com/go-sdk/server/standard"
@@ -28,6 +30,15 @@ func newFileStore() *fileStore {
 	return &fileStore{files: make(map[string][]byte)}
 }
 
+// normalizeFileName 只保留文件名，并拒绝空名和目录特殊名称。
+func normalizeFileName(value string) (string, bool) {
+	name := filepath.Base(strings.ReplaceAll(value, `\`, "/"))
+	if name == "" || name == "." || name == ".." || name == string(filepath.Separator) {
+		return "", false
+	}
+	return name, true
+}
+
 // handleUpload 处理 POST /upload，multipart 表单字段名为 file。
 func (s *fileStore) handleUpload(w http.ResponseWriter, r *http.Request, _ map[string]string) {
 	r.Body = http.MaxBytesReader(w, r.Body, maxFileSize)
@@ -40,6 +51,9 @@ func (s *fileStore) handleUpload(w http.ResponseWriter, r *http.Request, _ map[s
 		http.Error(w, "parse multipart form", status)
 		return
 	}
+	if r.MultipartForm != nil {
+		defer func() { _ = r.MultipartForm.RemoveAll() }()
+	}
 	file, header, err := r.FormFile("file")
 	if err != nil {
 		http.Error(w, "missing file field", http.StatusBadRequest)
@@ -47,8 +61,11 @@ func (s *fileStore) handleUpload(w http.ResponseWriter, r *http.Request, _ map[s
 	}
 	defer func() { _ = file.Close() }()
 
-	// 只保留文件名，防止路径穿越
-	name := filepath.Base(header.Filename)
+	name, ok := normalizeFileName(header.Filename)
+	if !ok {
+		http.Error(w, "invalid file name", http.StatusBadRequest)
+		return
+	}
 	data, err := io.ReadAll(file)
 	if err != nil {
 		http.Error(w, "read file content", http.StatusBadRequest)
@@ -71,7 +88,11 @@ func (s *fileStore) handleUpload(w http.ResponseWriter, r *http.Request, _ map[s
 
 // handleDownload 处理 GET /download/{name}，以附件形式返回文件内容。
 func (s *fileStore) handleDownload(w http.ResponseWriter, r *http.Request, pathParams map[string]string) {
-	name := filepath.Base(pathParams["name"])
+	name, valid := normalizeFileName(pathParams["name"])
+	if !valid {
+		http.Error(w, "invalid file name", http.StatusBadRequest)
+		return
+	}
 
 	s.mu.RLock()
 	data, ok := s.files[name]
@@ -82,10 +103,15 @@ func (s *fileStore) handleDownload(w http.ResponseWriter, r *http.Request, pathP
 	}
 
 	w.Header().Set("Content-Type", "application/octet-stream")
-	w.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%s"`, name))
+	disposition := mime.FormatMediaType("attachment", map[string]string{"filename": name})
+	if disposition == "" {
+		http.Error(w, "invalid file name", http.StatusBadRequest)
+		return
+	}
+	w.Header().Set("Content-Disposition", disposition)
 	w.Header().Set("Content-Length", strconv.Itoa(len(data)))
 	if _, err := w.Write(data); err != nil {
-		http.Error(w, "write file content", http.StatusInternalServerError)
+		logx.Ctx(r.Context()).Error().Err(err).Msg("write file content")
 	}
 }
 

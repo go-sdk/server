@@ -5,19 +5,19 @@ package core.v1;
 import "common/common.proto";
 import "core/v1/user.proto";
 import "google/api/annotations.proto";
-import "options.proto";
+import "options/options.proto";
 
 // 用户服务
 service UserService {
   // 健康检查
-  rpc Health(common.Empty) returns (common.Empty) {
+  rpc Health(server.common.Empty) returns (server.common.Empty) {
     option (server.options.method) = {
       skip_auth: true
       skip_log: true
     };
   }
   // 创建
-  rpc Create(core.v1.CreateUserReq) returns (common.Id) {
+  rpc Create(core.v1.CreateUserReq) returns (server.common.Id) {
     option (google.api.http) = {
       post: "/core/v1/users"
       body: "*"

@@ -2,11 +2,14 @@ package main
 
 import (
 	"bytes"
+	"encoding/json"
+	"mime"
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 )
 
@@ -49,12 +52,15 @@ func TestFileStoreUpload(t *testing.T) {
 		if contentType := response.Header().Get("Content-Type"); contentType != "application/json" {
 			t.Fatalf("unexpected content type: %s", contentType)
 		}
-		body := response.Body.String()
-		if !strings.Contains(body, `"name":"hello.txt"`) {
-			t.Fatalf("unexpected name in response: %s", body)
+		var metadata struct {
+			Name string `json:"name"`
+			Size int    `json:"size"`
 		}
-		if !strings.Contains(body, `"size":12`) {
-			t.Fatalf("unexpected size in response: %s", body)
+		if err := json.NewDecoder(response.Body).Decode(&metadata); err != nil {
+			t.Fatalf("decode response: %v", err)
+		}
+		if metadata.Name != "hello.txt" || metadata.Size != len(content) {
+			t.Fatalf("unexpected metadata: %+v", metadata)
 		}
 	})
 
@@ -98,6 +104,30 @@ func TestFileStoreUpload(t *testing.T) {
 	})
 }
 
+func TestNormalizeFileName(t *testing.T) {
+	tests := []struct {
+		name  string
+		value string
+		want  string
+		ok    bool
+	}{
+		{name: "plain", value: "hello.txt", want: "hello.txt", ok: true},
+		{name: "unix traversal", value: "../../secret.txt", want: "secret.txt", ok: true},
+		{name: "windows traversal", value: `..\..\secret.txt`, want: "secret.txt", ok: true},
+		{name: "empty", value: "", ok: false},
+		{name: "current directory", value: ".", ok: false},
+		{name: "parent directory", value: "..", ok: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, ok := normalizeFileName(tt.value)
+			if got != tt.want || ok != tt.ok {
+				t.Fatalf("normalizeFileName(%q) = %q, %t; want %q, %t", tt.value, got, ok, tt.want, tt.ok)
+			}
+		})
+	}
+}
+
 func TestFileStoreDownload(t *testing.T) {
 	store := newFileStore()
 	if response := serveHandler(store.handleUpload, newUploadRequest(t, "hello.txt", []byte("hello, files")), nil); response.Code != http.StatusOK {
@@ -116,8 +146,12 @@ func TestFileStoreDownload(t *testing.T) {
 		if contentType := response.Header().Get("Content-Type"); contentType != "application/octet-stream" {
 			t.Fatalf("unexpected content type: %s", contentType)
 		}
-		if disposition := response.Header().Get("Content-Disposition"); disposition != `attachment; filename="hello.txt"` {
-			t.Fatalf("unexpected disposition: %s", disposition)
+		disposition, params, err := mime.ParseMediaType(response.Header().Get("Content-Disposition"))
+		if err != nil {
+			t.Fatalf("parse disposition: %v", err)
+		}
+		if disposition != "attachment" || params["filename"] != "hello.txt" {
+			t.Fatalf("unexpected disposition: %s, params: %v", disposition, params)
 		}
 		if length := response.Header().Get("Content-Length"); length != "12" {
 			t.Fatalf("unexpected content length: %s", length)
@@ -150,11 +184,17 @@ func TestFileStoreDownload(t *testing.T) {
 
 func TestFileStoreConcurrentAccess(t *testing.T) {
 	store := newFileStore()
-	done := make(chan struct{})
+	requests := make([]*http.Request, 8)
+	for i := range requests {
+		requests[i] = newUploadRequest(t, "file.txt", []byte{byte(i)})
+	}
+
+	var wg sync.WaitGroup
 	for i := range 8 {
+		wg.Add(1)
 		go func(i int) {
-			defer func() { done <- struct{}{} }()
-			response := serveHandler(store.handleUpload, newUploadRequest(t, "file.txt", []byte{byte(i)}), nil)
+			defer wg.Done()
+			response := serveHandler(store.handleUpload, requests[i], nil)
 			if response.Code != http.StatusOK {
 				t.Errorf("upload file: status %d", response.Code)
 				return
@@ -166,7 +206,5 @@ func TestFileStoreConcurrentAccess(t *testing.T) {
 			}
 		}(i)
 	}
-	for range 8 {
-		<-done
-	}
+	wg.Wait()
 }

@@ -31,19 +31,19 @@ paths:
             $ref: '#/definitions/biz.v1.ListBillResp'
       parameters:
         - name: paging.page
-          description: 当前页
+          description: 请求页码，从 1 开始
           in: query
           required: false
           type: integer
           format: int32
         - name: paging.pageSize
-          description: 每页大小
+          description: 每页请求数量
           in: query
           required: false
           type: integer
           format: int32
         - name: paging.total
-          description: 总条数
+          description: 总记录数
           in: query
           required: false
           type: integer
@@ -58,7 +58,7 @@ paths:
         "200":
           description: A successful response.
           schema:
-            $ref: '#/definitions/common.Id'
+            $ref: '#/definitions/server.common.Id'
       parameters:
         - name: body
           in: body
@@ -79,14 +79,14 @@ definitions:
         format: double
         title: 金额
       metadata:
-        $ref: '#/definitions/common.Metadata'
+        $ref: '#/definitions/server.common.Metadata'
         title: 元数据
     title: 账单
   biz.v1.ListBillResp:
     type: object
     properties:
       paging:
-        $ref: '#/definitions/common.Paging'
+        $ref: '#/definitions/server.common.Paging'
         title: 分页
       records:
         type: array
@@ -94,14 +94,23 @@ definitions:
           type: object
           $ref: '#/definitions/biz.v1.Bill'
         title: 账单列表
-  common.Id:
+  core.v1.CreateUserReq:
+    type: object
+    properties:
+      name:
+        type: string
+        title: 用户名
+      email:
+        type: string
+        title: 邮箱
+  server.common.Id:
     type: object
     properties:
       id:
         type: string
-        title: Id
-    title: Id
-  common.Metadata:
+        title: 资源标识
+    title: 单个资源标识
+  server.common.Metadata:
     type: object
     properties:
       createdBy:
@@ -118,33 +127,28 @@ definitions:
         type: string
         format: date-time
         title: 更新时间
-    title: 元数据
-  common.Paging:
+      deleteAt:
+        type: string
+        format: date-time
+        title: 软删除时间
+    title: 资源的创建、更新和软删除元数据
+  server.common.Paging:
     type: object
     properties:
       page:
         type: integer
         format: int32
-        title: 当前页
+        title: 请求页码，从 1 开始
       pageSize:
         type: integer
         format: int32
-        title: 每页大小
+        title: 每页请求数量
       total:
         type: integer
         format: int32
-        title: 总条数
+        title: 总记录数
         readOnly: true
-    title: 分页
-  core.v1.CreateUserReq:
-    type: object
-    properties:
-      name:
-        type: string
-        title: 用户名
-      email:
-        type: string
-        title: 邮箱
+    title: 基于页码的请求和响应分页信息
 securityDefinitions:
   BearerJWT:
     type: apiKey

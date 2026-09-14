@@ -7,7 +7,7 @@
 package bizv1
 
 import (
-	common "github.com/go-sdk/server/tests/pb/common"
+	common "github.com/go-sdk/server/common"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -189,15 +189,15 @@ var File_biz_v1_bill_proto protoreflect.FileDescriptor
 
 const file_biz_v1_bill_proto_rawDesc = "" +
 	"\n" +
-	"\x11biz/v1/bill.proto\x12\x06biz.v1\x1a\x13common/common.proto\"\\\n" +
+	"\x11biz/v1/bill.proto\x12\x06biz.v1\x1a\x13common/common.proto\"c\n" +
 	"\x04Bill\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x16\n" +
-	"\x06amount\x18\x02 \x01(\x01R\x06amount\x12,\n" +
-	"\bmetadata\x18\x0f \x01(\v2\x10.common.MetadataR\bmetadata\"5\n" +
-	"\vListBillReq\x12&\n" +
-	"\x06paging\x18\x01 \x01(\v2\x0e.common.PagingR\x06paging\"^\n" +
-	"\fListBillResp\x12&\n" +
-	"\x06paging\x18\x01 \x01(\v2\x0e.common.PagingR\x06paging\x12&\n" +
+	"\x06amount\x18\x02 \x01(\x01R\x06amount\x123\n" +
+	"\bmetadata\x18\x0f \x01(\v2\x17.server.common.MetadataR\bmetadata\"<\n" +
+	"\vListBillReq\x12-\n" +
+	"\x06paging\x18\x01 \x01(\v2\x15.server.common.PagingR\x06paging\"e\n" +
+	"\fListBillResp\x12-\n" +
+	"\x06paging\x18\x01 \x01(\v2\x15.server.common.PagingR\x06paging\x12&\n" +
 	"\arecords\x18\x02 \x03(\v2\f.biz.v1.BillR\arecordsB\x80\x01\n" +
 	"\n" +
 	"com.biz.v1B\tBillProtoP\x01Z.github.com/go-sdk/server/tests/pb/biz/v1;bizv1\xa2\x02\x03BXX\xaa\x02\x06Biz.V1\xca\x02\x06Biz\\V1\xe2\x02\x12Biz\\V1\\GPBMetadata\xea\x02\aBiz::V1b\x06proto3"
@@ -219,13 +219,13 @@ var file_biz_v1_bill_proto_goTypes = []any{
 	(*Bill)(nil),            // 0: biz.v1.Bill
 	(*ListBillReq)(nil),     // 1: biz.v1.ListBillReq
 	(*ListBillResp)(nil),    // 2: biz.v1.ListBillResp
-	(*common.Metadata)(nil), // 3: common.Metadata
-	(*common.Paging)(nil),   // 4: common.Paging
+	(*common.Metadata)(nil), // 3: server.common.Metadata
+	(*common.Paging)(nil),   // 4: server.common.Paging
 }
 var file_biz_v1_bill_proto_depIdxs = []int32{
-	3, // 0: biz.v1.Bill.metadata:type_name -> common.Metadata
-	4, // 1: biz.v1.ListBillReq.paging:type_name -> common.Paging
-	4, // 2: biz.v1.ListBillResp.paging:type_name -> common.Paging
+	3, // 0: biz.v1.Bill.metadata:type_name -> server.common.Metadata
+	4, // 1: biz.v1.ListBillReq.paging:type_name -> server.common.Paging
+	4, // 2: biz.v1.ListBillResp.paging:type_name -> server.common.Paging
 	0, // 3: biz.v1.ListBillResp.records:type_name -> biz.v1.Bill
 	4, // [4:4] is the sub-list for method output_type
 	4, // [4:4] is the sub-list for method input_type

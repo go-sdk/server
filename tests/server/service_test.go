@@ -11,10 +11,10 @@ import (
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
 
+	"github.com/go-sdk/server/common"
 	"github.com/go-sdk/server/standard"
 	"github.com/go-sdk/server/standard/testserver"
 	bizv1 "github.com/go-sdk/server/tests/pb/biz/v1"
-	"github.com/go-sdk/server/tests/pb/common"
 	corev1 "github.com/go-sdk/server/tests/pb/core/v1"
 )
 
@@ -82,12 +82,15 @@ func TestUserService(t *testing.T) {
 func TestBillService(t *testing.T) {
 	server := newServiceTestServer(t)
 	client := bizv1.NewBillServiceClient(server.Conn())
-	request := &bizv1.ListBillReq{Paging: &common.Paging{Page: 2, PageSize: 20}}
+	request := &bizv1.ListBillReq{Paging: common.NewPaging(2, 20)}
 	response, err := client.List(authenticatedContext(t), request)
 	if err != nil {
 		t.Fatalf("list bills: %v", err)
 	}
-	if !proto.Equal(response.GetPaging(), request.GetPaging()) {
+	if response.GetPaging() == request.GetPaging() {
+		t.Fatal("response paging must not reuse request")
+	}
+	if expected := request.GetPaging().WithTotal(0); !proto.Equal(response.GetPaging(), expected) {
 		t.Fatalf("unexpected paging: %v", response.GetPaging())
 	}
 }

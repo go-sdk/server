@@ -12,17 +12,17 @@ message Bill {
   double amount = 2;
 
   // 元数据
-  common.Metadata metadata = 15;
+  server.common.Metadata metadata = 15;
 }
 
 message ListBillReq {
   // 分页
-  common.Paging paging = 1;
+  server.common.Paging paging = 1;
 }
 
 message ListBillResp {
   // 分页
-  common.Paging paging = 1;
+  server.common.Paging paging = 1;
   // 账单列表
   repeated biz.v1.Bill records = 2;
 }

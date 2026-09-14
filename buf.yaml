@@ -3,10 +3,13 @@
 # Buf Workspace v2：单文件统一管理多个模块的依赖、lint 与兼容性检查
 version: v2
 modules:
-  # 公共方法/消息/字段选项模块，proto 包为 server.options，仅对外提供扩展定义；
-  # 命名对应 BSR 仓库，打 tag 时由 CI 推送
-  - path: options
+  # 对外发布的公共模块，includes 内的 Proto 统一发布到同一 BSR 仓库；
+  # 新增公共 Proto 目录时同步追加 includes，tag CI 会自动发布整个命名模块
+  - path: .
     name: buf.build/go-sdk/server
+    includes:
+      - options
+      - common
   # 测试与示例协议模块，包含 google.api.http 注解和 buf.validate 规则
   - path: tests/proto
 # 远程依赖，具体版本由 buf.lock 锁定；生成时下载到本地镜像
@@ -30,10 +33,14 @@ lint:
     # common 包承载跨服务通用类型，不按服务版本化；options 为基础库公共选项包
     PACKAGE_VERSION_SUFFIX:
       - options/options.proto
-      - tests/proto/common
+      - common/common.proto
+      - tests/proto/common/openapi.proto
     # proto 包为 server.options，不含模块目录，文件位于模块根
     PACKAGE_DIRECTORY_MATCH:
       - options/options.proto
+      - common/common.proto
+    IMPORT_NO_PUBLIC:
+      - common/common.proto
 breaking:
   # 以文件为单位检查破坏性变更，与生成代码的文件布局保持一致
   use:

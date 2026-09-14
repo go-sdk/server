@@ -8,6 +8,11 @@
 
 ```text
 server/
+├── common/                       跨服务公共 Protobuf 类型和 Go 辅助方法（proto 包为 server.common）
+│   ├── common.proto                标识、元数据、动态属性、分页和时间范围定义
+│   ├── common.go                   公共类型构造方法和分页计算辅助方法
+│   ├── common.pb.go                生成的 Go 消息定义
+│   └── common.pb.json.go           生成的 JSON 编解码方法
 ├── options/                        公共 Protobuf 方法、消息和字段选项（proto 包为 server.options）
 │   ├── options.proto               认证、日志和敏感字段描述
 │   ├── options.pb.go               生成的 Go 扩展定义
@@ -48,6 +53,15 @@ server/
 ├── buf.yaml                        Protobuf 模块、依赖和 lint 配置
 └── go.mod                          Go 模块和依赖定义
 ```
+
+## 公共 Protobuf 模块
+
+- `buf.build/go-sdk/server` 以仓库根目录为模块路径，仅包含 `common` 和 `options` 两个 Proto 目录。
+- `common/common.proto` 定义 `server.common` 公共类型，并通过 public import 向依赖方传递常用 Google Protobuf 类型。
+- `options/options.proto` 定义 `server.options` 方法、消息和字段扩展。
+- Buf 生成代码分别落在 `common` 和 `options` Go 包；`common/common.go` 为手写文件，不得由生成或清理流程覆盖。
+- 业务 Proto 通过 `common/common.proto` 和 `options/options.proto` 引用公共定义；Go 代码从 `github.com/go-sdk/server/common` 使用生成类型和手写辅助方法。
+- tag CI 从 workspace 根目录推送全部命名模块，并排除 `tests/proto` 这类未命名的本地测试模块。后续新增对外 Proto 目录时，将其加入根模块的 `includes` 即可沿用同一发布流程。
 
 ## 请求链路
 
@@ -131,7 +145,7 @@ standard ──> gmux
 
 ## 验证边界
 
-- `make prepare` 安装 Protobuf 生成插件；`make generate` 使用 Buf lint 并重新生成 `options`、`tests/pb` 和 `tests/openapi`。
+- `make prepare` 安装 Protobuf 生成插件；`make generate` 使用 Buf lint 并重新生成 `common`、`options`、`tests/pb` 和 `tests/openapi`。
 - `make lint` 会先执行 `go mod tidy`，然后运行 golangci-lint。
 - `make test` 会运行竞态检测测试，必须得到用户明确授权后执行。
 - `standard` 使用 `bufconn` 验证真实 gRPC Server、Health 和 Client 上下文透传，不注册需要 TCP endpoint 的 Gateway。

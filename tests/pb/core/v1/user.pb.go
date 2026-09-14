@@ -8,8 +8,8 @@ package corev1
 
 import (
 	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
+	common "github.com/go-sdk/server/common"
 	_ "github.com/go-sdk/server/options"
-	common "github.com/go-sdk/server/tests/pb/common"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -155,12 +155,12 @@ var File_core_v1_user_proto protoreflect.FileDescriptor
 
 const file_core_v1_user_proto_rawDesc = "" +
 	"\n" +
-	"\x12core/v1/user.proto\x12\acore.v1\x1a\x1bbuf/validate/validate.proto\x1a\x13common/common.proto\x1a\roptions.proto\"x\n" +
+	"\x12core/v1/user.proto\x12\acore.v1\x1a\x1bbuf/validate/validate.proto\x1a\x13common/common.proto\x1a\x15options/options.proto\"\x7f\n" +
 	"\x04User\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x1e\n" +
-	"\x05email\x18\x03 \x01(\tB\b\xba\x9e\xf2\x84\x06\x02\b\x01R\x05email\x12,\n" +
-	"\bmetadata\x18\x0f \x01(\v2\x10.common.MetadataR\bmetadata\"S\n" +
+	"\x05email\x18\x03 \x01(\tB\b\xba\x9e\xf2\x84\x06\x02\b\x01R\x05email\x123\n" +
+	"\bmetadata\x18\x0f \x01(\v2\x17.server.common.MetadataR\bmetadata\"S\n" +
 	"\rCreateUserReq\x12\x1b\n" +
 	"\x04name\x18\x02 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x04name\x12%\n" +
 	"\x05email\x18\x03 \x01(\tB\x0f\xbaH\x04r\x02\x10\x01\xba\x9e\xf2\x84\x06\x02\b\x01R\x05emailB\x87\x01\n" +
@@ -182,10 +182,10 @@ var file_core_v1_user_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
 var file_core_v1_user_proto_goTypes = []any{
 	(*User)(nil),            // 0: core.v1.User
 	(*CreateUserReq)(nil),   // 1: core.v1.CreateUserReq
-	(*common.Metadata)(nil), // 2: common.Metadata
+	(*common.Metadata)(nil), // 2: server.common.Metadata
 }
 var file_core_v1_user_proto_depIdxs = []int32{
-	2, // 0: core.v1.User.metadata:type_name -> common.Metadata
+	2, // 0: core.v1.User.metadata:type_name -> server.common.Metadata
 	1, // [1:1] is the sub-list for method output_type
 	1, // [1:1] is the sub-list for method input_type
 	1, // [1:1] is the sub-list for extension type_name

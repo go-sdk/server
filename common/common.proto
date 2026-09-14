@@ -1,0 +1,75 @@
+syntax = "proto3";
+
+package server.common;
+
+import "buf/validate/validate.proto";
+import public "google/api/field_behavior.proto";
+import public "google/api/httpbody.proto";
+import public "google/protobuf/any.proto";
+import public "google/protobuf/duration.proto";
+import public "google/protobuf/field_mask.proto";
+import public "google/protobuf/struct.proto";
+import public "google/protobuf/timestamp.proto";
+import public "google/protobuf/wrappers.proto";
+import public "google/rpc/status.proto";
+
+// 空消息，用于不需要请求参数或响应数据的 RPC
+message Empty {}
+
+// 单个资源标识
+message Id {
+  // 资源标识
+  string id = 1;
+}
+
+// 多个资源标识
+message Ids {
+  // 资源标识列表
+  repeated string ids = 1;
+}
+
+// 资源的创建、更新和软删除元数据
+message Metadata {
+  // 创建人
+  string created_by = 1;
+  // 创建时间
+  google.protobuf.Timestamp created_at = 2;
+  // 更新人
+  string updated_by = 3;
+  // 更新时间
+  google.protobuf.Timestamp updated_at = 4;
+  // 软删除时间
+  google.protobuf.Timestamp delete_at = 5;
+}
+
+// 名称和值组成的动态属性
+message Attribute {
+  // 名称
+  string name = 1;
+  // 数据
+  google.protobuf.Value value = 2;
+}
+
+// 基于页码的请求和响应分页信息
+message Paging {
+  // 请求页码，从 1 开始
+  int32 page = 1;
+  // 每页请求数量
+  int32 page_size = 2;
+  // 总记录数
+  int32 total = 3 [(google.api.field_behavior) = OUTPUT_ONLY];
+}
+
+// 包含首尾边界的时间范围
+message TimeRange {
+  // 开始时间
+  google.protobuf.Timestamp start = 1;
+  // 结束时间
+  google.protobuf.Timestamp end = 2;
+
+  option (buf.validate.message).cel = {
+    id: "time_range.start_before_end"
+    message: "start must be before end"
+    expression: "!has(this.start) || !has(this.end) || this.start <= this.end"
+  };
+}

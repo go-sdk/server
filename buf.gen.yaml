@@ -8,10 +8,14 @@ managed:
     # 默认前缀：tests/proto 生成到 tests/pb
     - file_option: go_package_prefix
       value: github.com/go-sdk/server/tests/pb
-    # options 模块生成到 options，保持 Go 导入路径不变（后置规则覆盖默认前缀，path 相对模块根）
+    # 公共 Proto 生成到对应 Go 包，后置规则覆盖测试协议的默认前缀
     - file_option: go_package
       value: github.com/go-sdk/server/options
-      path: options.proto
+      path: options/options.proto
+    # common.pb.go 与手写 common.go 位于同一包，重新生成不会覆盖辅助方法
+    - file_option: go_package
+      value: github.com/go-sdk/server/common
+      path: common/common.proto
   # 依赖模块不生成本地代码，禁用改写以保留官方 go_package，避免悬空 import
   disable:
     - module: buf.build/googleapis/googleapis

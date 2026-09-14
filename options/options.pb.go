@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.36.12
 // 	protoc        (unknown)
-// source: options.proto
+// source: options/options.proto
 
 package options
 
@@ -37,7 +37,7 @@ type MethodOptions struct {
 
 func (x *MethodOptions) Reset() {
 	*x = MethodOptions{}
-	mi := &file_options_proto_msgTypes[0]
+	mi := &file_options_options_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -49,7 +49,7 @@ func (x *MethodOptions) String() string {
 func (*MethodOptions) ProtoMessage() {}
 
 func (x *MethodOptions) ProtoReflect() protoreflect.Message {
-	mi := &file_options_proto_msgTypes[0]
+	mi := &file_options_options_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -62,7 +62,7 @@ func (x *MethodOptions) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MethodOptions.ProtoReflect.Descriptor instead.
 func (*MethodOptions) Descriptor() ([]byte, []int) {
-	return file_options_proto_rawDescGZIP(), []int{0}
+	return file_options_options_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *MethodOptions) GetSkipAuth() bool {
@@ -95,7 +95,7 @@ type MessageOptions struct {
 
 func (x *MessageOptions) Reset() {
 	*x = MessageOptions{}
-	mi := &file_options_proto_msgTypes[1]
+	mi := &file_options_options_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -107,7 +107,7 @@ func (x *MessageOptions) String() string {
 func (*MessageOptions) ProtoMessage() {}
 
 func (x *MessageOptions) ProtoReflect() protoreflect.Message {
-	mi := &file_options_proto_msgTypes[1]
+	mi := &file_options_options_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -120,7 +120,7 @@ func (x *MessageOptions) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MessageOptions.ProtoReflect.Descriptor instead.
 func (*MessageOptions) Descriptor() ([]byte, []int) {
-	return file_options_proto_rawDescGZIP(), []int{1}
+	return file_options_options_proto_rawDescGZIP(), []int{1}
 }
 
 // 字段选项
@@ -134,7 +134,7 @@ type FieldOptions struct {
 
 func (x *FieldOptions) Reset() {
 	*x = FieldOptions{}
-	mi := &file_options_proto_msgTypes[2]
+	mi := &file_options_options_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -146,7 +146,7 @@ func (x *FieldOptions) String() string {
 func (*FieldOptions) ProtoMessage() {}
 
 func (x *FieldOptions) ProtoReflect() protoreflect.Message {
-	mi := &file_options_proto_msgTypes[2]
+	mi := &file_options_options_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -159,7 +159,7 @@ func (x *FieldOptions) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FieldOptions.ProtoReflect.Descriptor instead.
 func (*FieldOptions) Descriptor() ([]byte, []int) {
-	return file_options_proto_rawDescGZIP(), []int{2}
+	return file_options_options_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *FieldOptions) GetSensitive() bool {
@@ -169,14 +169,14 @@ func (x *FieldOptions) GetSensitive() bool {
 	return false
 }
 
-var file_options_proto_extTypes = []protoimpl.ExtensionInfo{
+var file_options_options_proto_extTypes = []protoimpl.ExtensionInfo{
 	{
 		ExtendedType:  (*descriptorpb.MethodOptions)(nil),
 		ExtensionType: (*MethodOptions)(nil),
 		Field:         202609129,
 		Name:          "server.options.method",
 		Tag:           "bytes,202609129,opt,name=method",
-		Filename:      "options.proto",
+		Filename:      "options/options.proto",
 	},
 	{
 		ExtendedType:  (*descriptorpb.MessageOptions)(nil),
@@ -184,7 +184,7 @@ var file_options_proto_extTypes = []protoimpl.ExtensionInfo{
 		Field:         202609128,
 		Name:          "server.options.message",
 		Tag:           "bytes,202609128,opt,name=message",
-		Filename:      "options.proto",
+		Filename:      "options/options.proto",
 	},
 	{
 		ExtendedType:  (*descriptorpb.FieldOptions)(nil),
@@ -192,33 +192,33 @@ var file_options_proto_extTypes = []protoimpl.ExtensionInfo{
 		Field:         202609127,
 		Name:          "server.options.field",
 		Tag:           "bytes,202609127,opt,name=field",
-		Filename:      "options.proto",
+		Filename:      "options/options.proto",
 	},
 }
 
 // Extension fields to descriptorpb.MethodOptions.
 var (
 	// optional server.options.MethodOptions method = 202609129;
-	E_Method = &file_options_proto_extTypes[0]
+	E_Method = &file_options_options_proto_extTypes[0]
 )
 
 // Extension fields to descriptorpb.MessageOptions.
 var (
 	// optional server.options.MessageOptions message = 202609128;
-	E_Message = &file_options_proto_extTypes[1]
+	E_Message = &file_options_options_proto_extTypes[1]
 )
 
 // Extension fields to descriptorpb.FieldOptions.
 var (
 	// optional server.options.FieldOptions field = 202609127;
-	E_Field = &file_options_proto_extTypes[2]
+	E_Field = &file_options_options_proto_extTypes[2]
 )
 
-var File_options_proto protoreflect.FileDescriptor
+var File_options_options_proto protoreflect.FileDescriptor
 
-const file_options_proto_rawDesc = "" +
+const file_options_options_proto_rawDesc = "" +
 	"\n" +
-	"\roptions.proto\x12\x0eserver.options\x1a google/protobuf/descriptor.proto\"i\n" +
+	"\x15options/options.proto\x12\x0eserver.options\x1a google/protobuf/descriptor.proto\"i\n" +
 	"\rMethodOptions\x12\x1b\n" +
 	"\tskip_auth\x18\x01 \x01(\bR\bskipAuth\x12 \n" +
 	"\vpermissions\x18\x02 \x03(\tR\vpermissions\x12\x19\n" +
@@ -232,19 +232,19 @@ const file_options_proto_rawDesc = "" +
 	"\x12com.server.optionsB\fOptionsProtoP\x01Z github.com/go-sdk/server/options\xa2\x02\x03SOX\xaa\x02\x0eServer.Options\xca\x02\x0eServer\\Options\xe2\x02\x1aServer\\Options\\GPBMetadata\xea\x02\x0fServer::Optionsb\x06proto3"
 
 var (
-	file_options_proto_rawDescOnce sync.Once
-	file_options_proto_rawDescData []byte
+	file_options_options_proto_rawDescOnce sync.Once
+	file_options_options_proto_rawDescData []byte
 )
 
-func file_options_proto_rawDescGZIP() []byte {
-	file_options_proto_rawDescOnce.Do(func() {
-		file_options_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_options_proto_rawDesc), len(file_options_proto_rawDesc)))
+func file_options_options_proto_rawDescGZIP() []byte {
+	file_options_options_proto_rawDescOnce.Do(func() {
+		file_options_options_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_options_options_proto_rawDesc), len(file_options_options_proto_rawDesc)))
 	})
-	return file_options_proto_rawDescData
+	return file_options_options_proto_rawDescData
 }
 
-var file_options_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
-var file_options_proto_goTypes = []any{
+var file_options_options_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
+var file_options_options_proto_goTypes = []any{
 	(*MethodOptions)(nil),               // 0: server.options.MethodOptions
 	(*MessageOptions)(nil),              // 1: server.options.MessageOptions
 	(*FieldOptions)(nil),                // 2: server.options.FieldOptions
@@ -252,7 +252,7 @@ var file_options_proto_goTypes = []any{
 	(*descriptorpb.MessageOptions)(nil), // 4: google.protobuf.MessageOptions
 	(*descriptorpb.FieldOptions)(nil),   // 5: google.protobuf.FieldOptions
 }
-var file_options_proto_depIdxs = []int32{
+var file_options_options_proto_depIdxs = []int32{
 	3, // 0: server.options.method:extendee -> google.protobuf.MethodOptions
 	4, // 1: server.options.message:extendee -> google.protobuf.MessageOptions
 	5, // 2: server.options.field:extendee -> google.protobuf.FieldOptions
@@ -266,27 +266,27 @@ var file_options_proto_depIdxs = []int32{
 	0, // [0:0] is the sub-list for field type_name
 }
 
-func init() { file_options_proto_init() }
-func file_options_proto_init() {
-	if File_options_proto != nil {
+func init() { file_options_options_proto_init() }
+func file_options_options_proto_init() {
+	if File_options_options_proto != nil {
 		return
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_options_proto_rawDesc), len(file_options_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_options_options_proto_rawDesc), len(file_options_options_proto_rawDesc)),
 			NumEnums:      0,
 			NumMessages:   3,
 			NumExtensions: 3,
 			NumServices:   0,
 		},
-		GoTypes:           file_options_proto_goTypes,
-		DependencyIndexes: file_options_proto_depIdxs,
-		MessageInfos:      file_options_proto_msgTypes,
-		ExtensionInfos:    file_options_proto_extTypes,
+		GoTypes:           file_options_options_proto_goTypes,
+		DependencyIndexes: file_options_options_proto_depIdxs,
+		MessageInfos:      file_options_options_proto_msgTypes,
+		ExtensionInfos:    file_options_options_proto_extTypes,
 	}.Build()
-	File_options_proto = out.File
-	file_options_proto_goTypes = nil
-	file_options_proto_depIdxs = nil
+	File_options_options_proto = out.File
+	file_options_options_proto_goTypes = nil
+	file_options_options_proto_depIdxs = nil
 }

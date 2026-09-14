@@ -7,8 +7,8 @@
 package corev1
 
 import (
+	common "github.com/go-sdk/server/common"
 	_ "github.com/go-sdk/server/options"
-	common "github.com/go-sdk/server/tests/pb/common"
 	_ "google.golang.org/genproto/googleapis/api/annotations"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
@@ -27,24 +27,23 @@ var File_core_v1_user_service_proto protoreflect.FileDescriptor
 
 const file_core_v1_user_service_proto_rawDesc = "" +
 	"\n" +
-	"\x1acore/v1/user_service.proto\x12\acore.v1\x1a\x13common/common.proto\x1a\x12core/v1/user.proto\x1a\x1cgoogle/api/annotations.proto\x1a\roptions.proto2\x8a\x01\n" +
-	"\vUserService\x122\n" +
-	"\x06Health\x12\r.common.Empty\x1a\r.common.Empty\"\n" +
-	"ʞ\xf2\x84\x06\x04\b\x01\x18\x01\x12G\n" +
-	"\x06Create\x12\x16.core.v1.CreateUserReq\x1a\n" +
-	".common.Id\"\x19\x82\xd3\xe4\x93\x02\x13:\x01*\"\x0e/core/v1/usersB\x8e\x01\n" +
+	"\x1acore/v1/user_service.proto\x12\acore.v1\x1a\x13common/common.proto\x1a\x12core/v1/user.proto\x1a\x1cgoogle/api/annotations.proto\x1a\x15options/options.proto2\x9f\x01\n" +
+	"\vUserService\x12@\n" +
+	"\x06Health\x12\x14.server.common.Empty\x1a\x14.server.common.Empty\"\n" +
+	"ʞ\xf2\x84\x06\x04\b\x01\x18\x01\x12N\n" +
+	"\x06Create\x12\x16.core.v1.CreateUserReq\x1a\x11.server.common.Id\"\x19\x82\xd3\xe4\x93\x02\x13:\x01*\"\x0e/core/v1/usersB\x8e\x01\n" +
 	"\vcom.core.v1B\x10UserServiceProtoP\x01Z0github.com/go-sdk/server/tests/pb/core/v1;corev1\xa2\x02\x03CXX\xaa\x02\aCore.V1\xca\x02\aCore\\V1\xe2\x02\x13Core\\V1\\GPBMetadata\xea\x02\bCore::V1b\x06proto3"
 
 var file_core_v1_user_service_proto_goTypes = []any{
-	(*common.Empty)(nil),  // 0: common.Empty
+	(*common.Empty)(nil),  // 0: server.common.Empty
 	(*CreateUserReq)(nil), // 1: core.v1.CreateUserReq
-	(*common.Id)(nil),     // 2: common.Id
+	(*common.Id)(nil),     // 2: server.common.Id
 }
 var file_core_v1_user_service_proto_depIdxs = []int32{
-	0, // 0: core.v1.UserService.Health:input_type -> common.Empty
+	0, // 0: core.v1.UserService.Health:input_type -> server.common.Empty
 	1, // 1: core.v1.UserService.Create:input_type -> core.v1.CreateUserReq
-	0, // 2: core.v1.UserService.Health:output_type -> common.Empty
-	2, // 3: core.v1.UserService.Create:output_type -> common.Id
+	0, // 2: core.v1.UserService.Health:output_type -> server.common.Empty
+	2, // 3: core.v1.UserService.Create:output_type -> server.common.Id
 	2, // [2:4] is the sub-list for method output_type
 	0, // [0:2] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
