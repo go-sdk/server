@@ -1,4 +1,4 @@
-// Package testserver 提供基于 bufconn 的标准 gRPC Server 测试环境。
+// Package testserver 提供标准 gRPC 与额外 HTTP 接口的测试环境。
 package testserver
 
 import (

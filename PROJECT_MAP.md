@@ -41,8 +41,9 @@ server/
 │   ├── response.go                 Gateway 成功和失败响应结构
 │   ├── server.go                   Server 构造、gmux 和额外路由注册
 │   ├── tls.go                      TLS 判断和 Gateway 客户端凭据
-│   └── testserver/                 基于 bufconn 的标准测试服务器
-│       └── server.go               测试 Server、ClientConn 和自动清理
+│   └── testserver/                 标准 gRPC 与额外 HTTP 接口测试服务器
+│       ├── http.go                 回环 HTTP Server、Client、URL 和自动清理
+│       └── server.go               bufconn Server、ClientConn 和自动清理
 ├── tests/
 │   ├── docs/                       JetBrains HTTP Client 接口测试和本地环境配置
 │   ├── pb/                         由 Buf 生成的测试及示例代码
@@ -136,6 +137,7 @@ Gateway 将成功的 Protobuf 消息放入 `data`，成功码为零且默认不�
 ## 测试服务器
 
 - `standard/testserver.New` 使用 `bufconn` 启动真实 `standard.Server`，并创建指向该服务且经过默认 Client interceptor 的 `grpc.ClientConn`。
+- `standard/testserver.NewHTTP` 使用本地回环端口启动单个 `HandlePath` 接口，并提供 HTTP Client 和 URL，覆盖标准 HTTP 中间件、鉴权、错误转换及响应链。
 - 测试通过 `Conn` 创建生成代码中的 gRPC Client，确保业务调用经过鉴权、校验、日志和 Recovery 等真实 interceptor。
 - 测试结束时自动关闭 ClientConn、Server 和 Listener；测试场景不注册依赖 TCP endpoint 的 Gateway。
 

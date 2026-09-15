@@ -372,6 +372,25 @@ response, err := client.Health(context.Background(), &common.Empty{})
 
 `testserver` 固定注入 `bufconn` Listener，适用于原生 gRPC 和 interceptor 单元测试。需要真实 TCP endpoint 的 grpc-gateway HTTP 路由应使用独立的集成测试。
 
+额外 HTTP Handler 可以使用 `NewHTTP` 在本地回环端口走完整的标准 HTTP 链路：
+
+```go
+server := testserver.NewHTTP(t, http.MethodPost, "/files", uploadHandler,
+	standard.WithErrorConverters(databaseErrorConverter),
+)
+request, err := http.NewRequest(http.MethodPost, server.URL("/files"), body)
+if err != nil {
+	t.Fatal(err)
+}
+response, err := server.Client().Do(request)
+if err != nil {
+	t.Fatal(err)
+}
+defer response.Body.Close()
+```
+
+`NewHTTP` 只负责注册一个 `HandlePath` Handler、启动 Server 并管理 HTTP Client 和资源清理，不初始化应用配置、数据库或迁移。普通 grpc-gateway 生成路由仍应通过对应 Service 的测试覆盖，涉及真实外部依赖时使用独立的集成测试。
+
 ## 开发约定
 
 修改代码前先阅读 `AGENTS.md`、`PROJECT_MAP.md` 和本文件。未经明确授权，不运行测试、示例服务或任何真实外部调用。
