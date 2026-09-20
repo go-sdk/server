@@ -323,7 +323,7 @@ acceptLanguage := requestContext.AcceptLanguage()
 
 `JWT()` 返回已验证 Claims 的副本，不包含原始 Bearer Token；`JWTClaims(target)` 将 Claims 解码到自定义结构，用于业务侧读取强类型声明。未配置鉴权 Option 时不启用鉴权。标准 gRPC Health Service 始终启用，并固定跳过鉴权和 Payload Logging；Reflection 默认关闭，仅通过 `WithReflection()` 启用，启用后仍遵循 JWT 鉴权。
 
-JWT 的签发和解析统一由 `github.com/go-sdk/server/jwtx` 提供：`jwtx.Signer` 以指定算法和密钥签发 token，`jwtx.Parser` 按算法白名单和密钥函数解析，`jwtx.Codec` 内嵌两者同时提供签发和解析。`jwtx.HS256(secret)` 返回对称密钥 Codec，`jwtx.Ed25519(privateKeyPEM)` 从 PEM 编码的 PKCS#8 私钥构造私钥签发、对应公钥解析的 Codec；仅需解析时直接使用 `codec.Parser`。
+JWT 的签发和解析统一由 `github.com/go-sdk/server/jwtx` 提供：`jwtx.Signer` 以指定算法和密钥签发 token，`jwtx.Parser` 按算法白名单和密钥函数解析，`jwtx.Codec` 内嵌两者同时提供签发和解析。`jwtx.HS256(secret)` 返回对称密钥 Codec，`jwtx.Ed25519(privateKeyPEM)` 从 PEM 编码的 PKCS#8 私钥构造私钥签发、对应公钥解析的 Codec；仅需解析时直接使用 `codec.Parser`。`jwtx.Claims` 提供 jti/sub/iat/exp 四个标准声明字段（时间为 `jwtx.Time`，payload 内使用秒级时间戳），其余声明与标准声明同级扁平存放在 `Extra` 并可通过 `Decode` 解码到目标结构；`jwtx.MapClaims` 与服务端中间件写入上下文的声明类型一致。
 
 需要为主动发起的调用补充请求参数时，使用 `standard.NewContext`：
 

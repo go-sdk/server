@@ -18,7 +18,8 @@ server/
 │   ├── options.pb.go               生成的 Go 扩展定义
 │   └── options.pb.json.go          生成的 JSON 编解码方法
 ├── jwtx/                           与传输无关的 JWT 签发和解析
-│   └── jwtx.go                     Signer、Parser、Codec 和 HS256/Ed25519 构造
+│   ├── jwtx.go                     Signer、Parser、Codec 和 HS256/Ed25519 构造
+│   └── claims.go                   标准声明结构、额外声明和秒级时间戳编解码
 ├── standard/                       标准单端口 gRPC/Gateway Server
 │   ├── logger.go                   core/logx 的 gRPC logging 适配
 │   ├── client.go                   gRPC ClientConn 创建和 lifex 生命周期注册
