@@ -24,11 +24,11 @@ func (s *Server) httpRouteHandler(handler HandlerFunc) runtime.HandlerFunc {
 			}
 		}()
 
-		if len(s.config.jwtSecret) > 0 {
+		if s.config.jwtAuth != nil {
 			requestContext, err := contextWithJWT(
 				request.Context(),
 				request.Header.Get("Authorization"),
-				s.config.jwtSecret,
+				*s.config.jwtAuth,
 			)
 			if err != nil {
 				s.renderHTTPError(ctx, ErrUnauthenticated.WithMessage("invalid bearer token"))

@@ -5,6 +5,8 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/go-sdk/server/jwtx"
 )
 
 func TestHTTPRouteHandlerRendersRespError(t *testing.T) {
@@ -73,7 +75,8 @@ func TestHTTPRouteHandlerHidesUnknownError(t *testing.T) {
 }
 
 func TestHTTPRouteHandlerRequiresJWT(t *testing.T) {
-	server := &Server{config: config{jwtSecret: []byte("secret")}}
+	codec := jwtx.HS256("secret")
+	server := &Server{config: config{jwtAuth: &codec.Parser}}
 	handler := server.httpRouteHandler(func(*Context) error {
 		t.Fatal("handler must not run without a valid token")
 		return nil

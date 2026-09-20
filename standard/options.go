@@ -15,6 +15,8 @@ import (
 	"github.com/nicksnyder/go-i18n/v2/i18n"
 	"golang.org/x/text/language"
 	"google.golang.org/grpc"
+
+	"github.com/go-sdk/server/jwtx"
 )
 
 // GRPCRegisterFunc 向统一的 gRPC Server 注册业务服务。
@@ -52,7 +54,7 @@ type config struct {
 	grpcRegisters      []GRPCRegisterFunc
 	gatewayRegisters   []GatewayRegisterFunc
 	logger             grpclogging.Logger
-	jwtSecret          []byte
+	jwtAuth            *jwtx.Parser
 	reflection         bool
 }
 
@@ -239,7 +241,19 @@ func WithJWTSecret(secret []byte) Option {
 		if len(secret) == 0 {
 			return errx.New("jwt secret must not be empty")
 		}
-		c.jwtSecret = append([]byte(nil), secret...)
+		codec := jwtx.HS256(string(secret))
+		c.jwtAuth = &codec.Parser
+		return nil
+	}
+}
+
+// WithJWTAuth 使用自定义解析器启用 JWT 鉴权，支持非对称算法和外部密钥源。
+func WithJWTAuth(parser jwtx.Parser) Option {
+	return func(c *config) error {
+		if parser.KeyFunc == nil {
+			return errx.New("jwt parser key func must not be nil")
+		}
+		c.jwtAuth = &parser
 		return nil
 	}
 }

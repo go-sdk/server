@@ -2,8 +2,10 @@ package standard
 
 import (
 	"context"
+	"encoding/json"
 	"maps"
 
+	"github.com/go-sdk/core/errx"
 	"github.com/go-sdk/core/osx"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/spf13/cast"
@@ -102,6 +104,22 @@ func (c *Context) AcceptLanguage() string { return c.String(AcceptLanguageKey) }
 func (c *Context) JWT() jwt.MapClaims {
 	claims, _ := c.Get(JWTKey).(jwt.MapClaims)
 	return maps.Clone(claims)
+}
+
+// JWTClaims 将鉴权中间件验证后的 Claims 解码到目标结构，用于业务侧读取强类型声明。
+func (c *Context) JWTClaims(target any) error {
+	claims := c.JWT()
+	if claims == nil {
+		return errx.New("jwt claims not found in context")
+	}
+	encoded, err := json.Marshal(claims)
+	if err != nil {
+		return errx.Wrap(err, "encode jwt claims")
+	}
+	if err = json.Unmarshal(encoded, target); err != nil {
+		return errx.Wrap(err, "decode jwt claims")
+	}
+	return nil
 }
 
 func contextOrBackground(ctx context.Context) context.Context {

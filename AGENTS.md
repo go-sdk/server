@@ -29,7 +29,7 @@
 - Server 默认 interceptor 顺序为 Request Context、Logging、Payload Logging、JWT Auth、Protovalidate、自定义 interceptor、Error Converter、Recovery。
 - Client 默认使用明文连接，并通过 Option 启用 TLS；默认 interceptor 负责请求上下文透传、Logging 和 Payload Logging。
 - `standard.NewContext` 和 `standard.FromContext` 统一管理 Request ID、JWT Claims、调用深度及安全的请求信息；认证原文仅供内部透传。
-- JWT 鉴权仅在注入 HS256 密钥后启用；Health Service 固定跳过鉴权和 Payload Logging，Reflection 默认关闭。
+- JWT 鉴权仅在注入 `jwtx.Parser` 后启用（`WithJWTSecret` 为 HS256 快捷方式）；Health Service 固定跳过鉴权和 Payload Logging，Reflection 默认关闭。
 - Listener 非空时优先于 Address。Server 只能启动一次，`Stop` 必须支持重复调用并使用配置的超时完成优雅停止。
 - Server 通过 `core/lifex` 注册启动和停止函数，由 `lifex.Init`、`lifex.Wait` 和 `lifex.Shutdown` 统一管理进程生命周期。
 - 错误创建、包装和判断统一使用 `core/errx`；错误文本和日志消息使用小写字母开头。

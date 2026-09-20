@@ -21,6 +21,8 @@ import (
 	"google.golang.org/grpc/test/bufconn"
 	"google.golang.org/protobuf/types/known/emptypb"
 	"google.golang.org/protobuf/types/known/structpb"
+
+	"github.com/go-sdk/server/jwtx"
 )
 
 const inspectMethod = "/standard.test.ContextService/Inspect"
@@ -122,7 +124,7 @@ func TestServerWithBufconn(t *testing.T) {
 		"authorization", authorization,
 	))
 	ctx, _, _ = grpcRequestContext(ctx)
-	ctx, err = contextWithJWT(ctx, authorization, secret)
+	ctx, err = contextWithJWT(ctx, authorization, jwtx.HS256(string(secret)).Parser)
 	if err != nil {
 		t.Fatalf("initialize source jwt context: %v", err)
 	}

@@ -17,6 +17,8 @@ server/
 │   ├── options.proto               认证、日志和敏感字段描述
 │   ├── options.pb.go               生成的 Go 扩展定义
 │   └── options.pb.json.go          生成的 JSON 编解码方法
+├── jwtx/                           与传输无关的 JWT 签发和解析
+│   └── jwtx.go                     Signer、Parser、Codec 和 HS256/Ed25519 构造
 ├── standard/                       标准单端口 gRPC/Gateway Server
 │   ├── logger.go                   core/logx 的 gRPC logging 适配
 │   ├── client.go                   gRPC ClientConn 创建和 lifex 生命周期注册
@@ -112,7 +114,7 @@ Gateway 将成功的 Protobuf 消息放入 `data`，成功码为零且默认不�
 
 - Request Context 对外以 `X-Request-Id` 请求头和 gRPC `x-request-id` metadata 接收并回写链路标识，内部统一命名为 TraceID；每次请求入口生成服务内 SpanID，仅随日志输出，不透传也不写入响应。两者与调用深度、安全的请求信息和原始 `Accept-Language` 一起在 HTTP Header、HTTP context、gRPC metadata 和业务 context 间传递，并注入 `standard.Context`；语言偏好继续透传给下游 gRPC 服务。Gateway 不透传任何 gRPC 响应头，HTTP 响应的 `X-Request-Id` 由外层 HTTP 中间件统一写入。
 - Logging 记录 gRPC 调用元数据；Payload Logging 分别记录请求和响应，敏感字段以及设置 `server.options.method.skip_log` 的完整 payload 使用 `***` 替代。
-- JWT Auth 使用 Option 注入的 HS256 密钥验证 Bearer Token，验证后的 Claims 写入 `standard.Context`；设置 `server.options.method.skip_auth` 的 RPC 跳过鉴权。
+- JWT Auth 使用 Option 注入的 `jwtx.Parser` 验证 Bearer Token（`WithJWTSecret` 为 HS256 快捷方式，`WithJWTAuth` 支持非对称算法和外部密钥源），验证后的 Claims 写入 `standard.Context`，业务侧通过 `JWT()` 或 `JWTClaims(target)` 读取；设置 `server.options.method.skip_auth` 的 RPC 跳过鉴权。
 - Protovalidate 执行 `buf.validate` 规则，对原生 gRPC 和注解生成的 Gateway 请求生效。
 - Error Converter 位于自定义 interceptor 和 Recovery 之间，按注册顺序将数据库等应用依赖错误转换为统一 `RespError`，随后根据请求语言渲染错误码文案；缺少目标语言时依次回退英文默认文案和枚举名称，未匹配错误原样返回。
 - TOML 翻译文件由业务服务嵌入，语言标签从文件名解析；空文件系统、非法语言标签和解析失败都在 Server 初始化阶段返回错误。
@@ -146,7 +148,8 @@ Gateway 将成功的 Protobuf 消息放入 `data`，成功码为零且默认不�
 ```text
 standard ──> gmux
          ├─> core/errx、core/lifex
-         ├─> golang-jwt/jwt
+         ├─> jwtx（golang-jwt/jwt）
+         │     └─> golang-jwt/jwt
          ├─> grpc-go
          ├─> grpc-gateway
          ├─> go-grpc-middleware

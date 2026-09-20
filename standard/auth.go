@@ -7,14 +7,16 @@ import (
 	"github.com/go-sdk/core/errx"
 	"github.com/golang-jwt/jwt/v5"
 	"google.golang.org/grpc"
+
+	"github.com/go-sdk/server/jwtx"
 )
 
-func unaryJWTAuthInterceptor(secret []byte) grpc.UnaryServerInterceptor {
+func unaryJWTAuthInterceptor(auth *jwtx.Parser) grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
-		if len(secret) == 0 || shouldSkipMethodAuth(info.FullMethod) {
+		if auth == nil || shouldSkipMethodAuth(info.FullMethod) {
 			return handler(ctx, req)
 		}
-		ctx, err := contextWithJWT(ctx, firstMetadataValue(ctx, "authorization"), secret)
+		ctx, err := contextWithJWT(ctx, firstMetadataValue(ctx, "authorization"), *auth)
 		if err != nil {
 			return nil, ErrUnauthenticated.WithMessage("invalid bearer token")
 		}
@@ -22,12 +24,12 @@ func unaryJWTAuthInterceptor(secret []byte) grpc.UnaryServerInterceptor {
 	}
 }
 
-func streamJWTAuthInterceptor(secret []byte) grpc.StreamServerInterceptor {
+func streamJWTAuthInterceptor(auth *jwtx.Parser) grpc.StreamServerInterceptor {
 	return func(srv any, stream grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
-		if len(secret) == 0 || shouldSkipMethodAuth(info.FullMethod) {
+		if auth == nil || shouldSkipMethodAuth(info.FullMethod) {
 			return handler(srv, stream)
 		}
-		ctx, err := contextWithJWT(stream.Context(), firstMetadataValue(stream.Context(), "authorization"), secret)
+		ctx, err := contextWithJWT(stream.Context(), firstMetadataValue(stream.Context(), "authorization"), *auth)
 		if err != nil {
 			return ErrUnauthenticated.WithMessage("invalid bearer token")
 		}
@@ -35,8 +37,8 @@ func streamJWTAuthInterceptor(secret []byte) grpc.StreamServerInterceptor {
 	}
 }
 
-func contextWithJWT(ctx context.Context, authorization string, secret []byte) (context.Context, error) {
-	claims, err := parseJWTClaims(authorization, secret)
+func contextWithJWT(ctx context.Context, authorization string, parser jwtx.Parser) (context.Context, error) {
+	claims, err := parseJWTClaims(authorization, parser)
 	if err != nil {
 		return nil, err
 	}
@@ -44,23 +46,14 @@ func contextWithJWT(ctx context.Context, authorization string, secret []byte) (c
 	return NewContext(ctx, JWTKey, claims), nil
 }
 
-func parseJWTClaims(authorization string, secret []byte) (jwt.MapClaims, error) {
+func parseJWTClaims(authorization string, parser jwtx.Parser) (jwt.MapClaims, error) {
 	parts := strings.Fields(authorization)
 	if len(parts) != 2 || !strings.EqualFold(parts[0], "Bearer") {
 		return nil, errx.New("missing bearer token")
 	}
-	token, err := jwt.Parse(parts[1], func(token *jwt.Token) (any, error) {
-		if token.Method != jwt.SigningMethodHS256 {
-			return nil, errx.New("unexpected jwt signing method")
-		}
-		return secret, nil
-	}, jwt.WithValidMethods([]string{jwt.SigningMethodHS256.Alg()}))
-	if err != nil {
-		return nil, errx.Wrap(err, "parse jwt")
-	}
-	claims, ok := token.Claims.(jwt.MapClaims)
-	if !ok || !token.Valid {
-		return nil, errx.New("invalid jwt claims")
+	claims := jwt.MapClaims{}
+	if err := parser.Parse(parts[1], claims); err != nil {
+		return nil, err
 	}
 	return claims, nil
 }

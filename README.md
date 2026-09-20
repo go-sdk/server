@@ -262,31 +262,32 @@ server, err := standard.New(
 
 ## Options
 
-| Option                   | 用途                                              |
-|--------------------------|---------------------------------------------------|
-| `WithName`               | 设置生命周期日志和 Serve 异常中的 Server 实例标识 |
-| `WithAddress`            | 设置监听地址，默认 `:8080`                        |
-| `WithListener`           | 注入 Listener，优先于 Address                     |
-| `WithGracefulTimeout`    | 设置 lifex 解构阶段的停止超时，默认五秒           |
-| `WithCertificate`        | 设置 TLS 证书和私钥文件                           |
-| `WithCertificatePEM`     | 设置内存中的 PEM 证书和私钥                       |
-| `WithTLSConfig`          | 注入自定义 TLS 配置                               |
-| `WithGatewayEndpoint`    | 为非 TCP Listener 或特殊网络覆盖 Gateway endpoint |
-| `WithGatewayServerName`  | 设置 Gateway TLS 回连校验名称                     |
-| `WithGatewayDialOptions` | 追加或覆盖 Gateway gRPC 客户端配置                |
-| `WithGatewayOptions`     | 注入 grpc-gateway Mux Options                     |
-| `WithGRPCServerOptions`  | 注入 gRPC Server Options                          |
-| `WithHTTPServerOptions`  | 调整 HTTP Server 超时等参数，Handler 不允许替换   |
-| `WithUnaryInterceptors`  | 在标准校验和 Recovery 之间插入 unary interceptor  |
-| `WithStreamInterceptors` | 在标准校验和 Recovery 之间插入 stream interceptor |
-| `WithErrorConverters`    | 将数据库等应用依赖错误转换为 `RespError`          |
-| `WithI18nFS`             | 从 embed.FS 递归加载 TOML 错误文案                |
-| `WithI18nBundle`         | 注入业务错误文案的 go-i18n 翻译目录               |
-| `WithGRPCRegister`       | 注册真实 gRPC 服务                                |
-| `WithGatewayRegister`    | 注册 `google.api.http` 生成的 Gateway endpoint    |
-| `WithLogger`             | 替换默认的 `core/logx` gRPC 日志适配器            |
-| `WithJWTSecret`          | 注入 HS256 密钥并启用 JWT 鉴权                    |
-| `WithReflection`         | 启用标准 gRPC Reflection Service                  |
+| Option                   | 用途                                                 |
+|--------------------------|------------------------------------------------------|
+| `WithName`               | 设置生命周期日志和 Serve 异常中的 Server 实例标识    |
+| `WithAddress`            | 设置监听地址，默认 `:8080`                           |
+| `WithListener`           | 注入 Listener，优先于 Address                        |
+| `WithGracefulTimeout`    | 设置 lifex 解构阶段的停止超时，默认五秒              |
+| `WithCertificate`        | 设置 TLS 证书和私钥文件                              |
+| `WithCertificatePEM`     | 设置内存中的 PEM 证书和私钥                          |
+| `WithTLSConfig`          | 注入自定义 TLS 配置                                  |
+| `WithGatewayEndpoint`    | 为非 TCP Listener 或特殊网络覆盖 Gateway endpoint    |
+| `WithGatewayServerName`  | 设置 Gateway TLS 回连校验名称                        |
+| `WithGatewayDialOptions` | 追加或覆盖 Gateway gRPC 客户端配置                   |
+| `WithGatewayOptions`     | 注入 grpc-gateway Mux Options                        |
+| `WithGRPCServerOptions`  | 注入 gRPC Server Options                             |
+| `WithHTTPServerOptions`  | 调整 HTTP Server 超时等参数，Handler 不允许替换      |
+| `WithUnaryInterceptors`  | 在标准校验和 Recovery 之间插入 unary interceptor     |
+| `WithStreamInterceptors` | 在标准校验和 Recovery 之间插入 stream interceptor    |
+| `WithErrorConverters`    | 将数据库等应用依赖错误转换为 `RespError`             |
+| `WithI18nFS`             | 从 embed.FS 递归加载 TOML 错误文案                   |
+| `WithI18nBundle`         | 注入业务错误文案的 go-i18n 翻译目录                  |
+| `WithGRPCRegister`       | 注册真实 gRPC 服务                                   |
+| `WithGatewayRegister`    | 注册 `google.api.http` 生成的 Gateway endpoint       |
+| `WithLogger`             | 替换默认的 `core/logx` gRPC 日志适配器               |
+| `WithJWTSecret`          | 注入 HS256 密钥并启用 JWT 鉴权                       |
+| `WithJWTAuth`            | 注入自定义 `jwtx.Parser`，支持非对称算法和外部密钥源 |
+| `WithReflection`         | 启用标准 gRPC Reflection Service                     |
 
 ## 默认 Middleware
 
@@ -301,7 +302,7 @@ Request Context -> Logging -> Payload Logging -> JWT Auth -> Protovalidate -> �
 - Logging 记录协议、方法、状态和耗时；Payload Logging 分别输出 `grpc request` 和 `grpc response`，不记录认证头、JWT 原文或完整 metadata。
 - Payload Logging 的 `content_length` 是 `proto.Size` 得到的逻辑消息长度，不代表压缩和 HTTP/2 帧编码后的网络字节数。
 - 方法设置 `(server.options.method).skip_log = true` 时仍记录请求与响应元数据，但 payload 使用 `***`；字段设置 `(server.options.field).sensitive = true` 时递归脱敏。
-- 配置 `WithJWTSecret` 后使用 HS256 验证 Bearer Token；方法设置 `(server.options.method).skip_auth = true` 时跳过鉴权。
+- 配置 `WithJWTSecret` 后使用 HS256 验证 Bearer Token，`WithJWTAuth` 可注入非对称算法和外部密钥源的 `jwtx.Parser`；方法设置 `(server.options.method).skip_auth = true` 时跳过鉴权。
 - Protovalidate 执行 Protobuf 中的 `buf.validate` 规则，失败时返回 `InvalidArgument`。
 - Error Converter 按注册顺序将应用依赖错误转换为统一 `RespError`；额外 HTTP Handler 的未匹配错误统一隐藏为 `ErrInternal`。
 - Recovery 将 gRPC panic 转换为 `Internal`，额外 HTTP Handler 的 panic 转换为统一 `ErrInternal` 响应。
@@ -320,7 +321,9 @@ acceptLanguage := requestContext.AcceptLanguage()
 
 `TraceID` 是跨服务透传的链路标识，对外线上协议固定为 `X-Request-Id` 请求头和 gRPC `x-request-id` metadata；`SpanID` 由每个服务在请求入口生成，只标识本服务内这一次请求到响应的处理，仅随日志输出，不随出站调用传递，也不写入 HTTP 响应头或 gRPC 响应 metadata。HTTP 响应只会写一个 `X-Request-Id`；Gateway 不透传任何 gRPC 响应头，因此 HTTP 响应中不会出现 `Grpc-Metadata-` 前缀的头或重复的 `X-Request-Id`。
 
-`JWT()` 返回已验证 Claims 的副本，不包含原始 Bearer Token。未配置 `WithJWTSecret` 时不启用鉴权。标准 gRPC Health Service 始终启用，并固定跳过鉴权和 Payload Logging；Reflection 默认关闭，仅通过 `WithReflection()` 启用，启用后仍遵循 JWT 鉴权。
+`JWT()` 返回已验证 Claims 的副本，不包含原始 Bearer Token；`JWTClaims(target)` 将 Claims 解码到自定义结构，用于业务侧读取强类型声明。未配置鉴权 Option 时不启用鉴权。标准 gRPC Health Service 始终启用，并固定跳过鉴权和 Payload Logging；Reflection 默认关闭，仅通过 `WithReflection()` 启用，启用后仍遵循 JWT 鉴权。
+
+JWT 的签发和解析统一由 `github.com/go-sdk/server/jwtx` 提供：`jwtx.Signer` 以指定算法和密钥签发 token，`jwtx.Parser` 按算法白名单和密钥函数解析，`jwtx.Codec` 内嵌两者同时提供签发和解析。`jwtx.HS256(secret)` 返回对称密钥 Codec，`jwtx.Ed25519(privateKeyPEM)` 从 PEM 编码的 PKCS#8 私钥构造私钥签发、对应公钥解析的 Codec；仅需解析时直接使用 `codec.Parser`。
 
 需要为主动发起的调用补充请求参数时，使用 `standard.NewContext`：
 

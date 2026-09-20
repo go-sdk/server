@@ -135,7 +135,7 @@ func newGRPCServer(cfg config) (*grpc.Server, error) {
 			loggingMatcher,
 		),
 		unaryPayloadLoggingInterceptor(),
-		unaryJWTAuthInterceptor(cfg.jwtSecret),
+		unaryJWTAuthInterceptor(cfg.jwtAuth),
 		grpcprotovalidate.UnaryServerInterceptor(validator),
 	}
 	unaryInterceptors = append(unaryInterceptors, cfg.unaryInterceptors...)
@@ -148,7 +148,7 @@ func newGRPCServer(cfg config) (*grpc.Server, error) {
 			loggingMatcher,
 		),
 		streamPayloadLoggingInterceptor(),
-		streamJWTAuthInterceptor(cfg.jwtSecret),
+		streamJWTAuthInterceptor(cfg.jwtAuth),
 		grpcprotovalidate.StreamServerInterceptor(validator),
 	}
 	streamInterceptors = append(streamInterceptors, cfg.streamInterceptors...)
