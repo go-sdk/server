@@ -303,7 +303,7 @@ Request Context -> Logging -> Payload Logging -> JWT Auth -> Permission -> Proto
 - `core/logx.Ctx(ctx)` 自动携带 `trace-id`、`span-id` 和 depth；业务代码通过 `standard.FromContext(ctx)` 读取请求参数和 JWT Claims。
 - Logging 记录协议、方法、状态和耗时；Payload Logging 分别输出 `grpc request` 和 `grpc response`，不记录认证头、JWT 原文或完整 metadata。
 - Payload Logging 的 `content_length` 是 `proto.Size` 得到的逻辑消息长度，不代表压缩和 HTTP/2 帧编码后的网络字节数。
-- 方法设置 `(server.options.method).skip_log = true` 时仍记录请求与响应元数据，但 payload 使用 `***`；字段设置 `(server.options.field).sensitive = true` 时递归脱敏。
+- 方法设置 `(server.options.method).skip_log = true` 时仍记录请求与响应元数据，但 payload 使用 `***`；消息设置 `(server.options.message).sensitive = true` 时隐藏整个消息，字段设置 `(server.options.field).sensitive = true` 时递归脱敏。
 - 配置 `WithJWTSecret` 后使用 HS256 验证 Bearer Token，`WithJWTAuth` 可注入非对称算法和外部密钥源的 `jwtx.Parser`；方法设置 `(server.options.method).skip_auth = true` 时跳过鉴权。
 - 配置 `WithPermissionFunc` 后，SDK 将方法名和 `(server.options.method).permissions` 交给业务方法校验；未声明 MethodOptions 的业务 RPC 按配置错误拒绝。
 - Protovalidate 执行 Protobuf 中的 `buf.validate` 规则，失败时返回 `InvalidArgument`。

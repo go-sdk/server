@@ -28,3 +28,9 @@ message CreateUserReq {
     (server.options.field).sensitive = true
   ];
 }
+
+message Credentials {
+  option (server.options.message).sensitive = true;
+
+  string token = 1;
+}

@@ -121,7 +121,10 @@ func isNilProtoMessage(message proto.Message) bool {
 	return value.Kind() == reflect.Pointer && value.IsNil()
 }
 
-func logMessage(message protoreflect.Message) map[string]any {
+func logMessage(message protoreflect.Message) any {
+	if isSensitiveMessage(message.Descriptor()) {
+		return redactedValue
+	}
 	if anyMessage, ok := message.Interface().(*anypb.Any); ok {
 		return logAny(anyMessage)
 	}
@@ -196,5 +199,14 @@ func isSensitiveField(field protoreflect.FieldDescriptor) bool {
 		return false
 	}
 	option, ok := proto.GetExtension(fieldOptions, serveroptions.E_Field).(*serveroptions.FieldOptions)
+	return ok && option.GetSensitive()
+}
+
+func isSensitiveMessage(message protoreflect.MessageDescriptor) bool {
+	messageOptions, ok := message.Options().(*descriptorpb.MessageOptions)
+	if !ok || !proto.HasExtension(messageOptions, serveroptions.E_Message) {
+		return false
+	}
+	option, ok := proto.GetExtension(messageOptions, serveroptions.E_Message).(*serveroptions.MessageOptions)
 	return ok && option.GetSensitive()
 }

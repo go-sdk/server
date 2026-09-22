@@ -97,7 +97,9 @@ func (x *MethodOptions) GetAuditKind() string {
 
 // 消息选项
 type MessageOptions struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// 是否将整个消息作为敏感数据
+	Sensitive     bool `protobuf:"varint,1,opt,name=sensitive,proto3" json:"sensitive,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -130,6 +132,13 @@ func (x *MessageOptions) ProtoReflect() protoreflect.Message {
 // Deprecated: Use MessageOptions.ProtoReflect.Descriptor instead.
 func (*MessageOptions) Descriptor() ([]byte, []int) {
 	return file_options_options_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *MessageOptions) GetSensitive() bool {
+	if x != nil {
+		return x.Sensitive
+	}
+	return false
 }
 
 // 字段选项
@@ -302,8 +311,9 @@ const file_options_options_proto_rawDesc = "" +
 	"\vpermissions\x18\x02 \x03(\tR\vpermissions\x12\x19\n" +
 	"\bskip_log\x18\x03 \x01(\bR\askipLog\x12\x1d\n" +
 	"\n" +
-	"audit_kind\x18\x04 \x01(\tR\tauditKind\"\x10\n" +
-	"\x0eMessageOptions\",\n" +
+	"audit_kind\x18\x04 \x01(\tR\tauditKind\".\n" +
+	"\x0eMessageOptions\x12\x1c\n" +
+	"\tsensitive\x18\x01 \x01(\bR\tsensitive\",\n" +
 	"\fFieldOptions\x12\x1c\n" +
 	"\tsensitive\x18\x01 \x01(\bR\tsensitive\"M\n" +
 	"\x10EnumValueOptions\x12\x1f\n" +

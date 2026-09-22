@@ -26,6 +26,16 @@ func TestLogPayloadRedactsSensitiveFields(t *testing.T) {
 	}
 }
 
+func TestLogPayloadRedactsSensitiveMessage(t *testing.T) {
+	payload, size := logPayload(&corev1.Credentials{Token: "secret"}, false)
+	if size == 0 {
+		t.Fatal("payload size must be recorded")
+	}
+	if payload != redactedValue {
+		t.Fatalf("sensitive message was not redacted: %v", payload)
+	}
+}
+
 func TestMethodOptions(t *testing.T) {
 	if !shouldSkipMethodAuth(corev1.UserService_Health_FullMethodName) {
 		t.Fatal("health method must skip auth")

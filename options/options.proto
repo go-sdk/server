@@ -25,7 +25,10 @@ extend google.protobuf.MessageOptions {
 }
 
 // 消息选项
-message MessageOptions {}
+message MessageOptions {
+  // 是否将整个消息作为敏感数据
+  bool sensitive = 1;
+}
 
 extend google.protobuf.FieldOptions {
   FieldOptions field = 202609127;

@@ -115,7 +115,7 @@ Gateway 将成功的 Protobuf 消息放入 `data`，成功码为零且默认不�
 ### Middleware
 
 - Request Context 对外以 `X-Request-Id` 请求头和 gRPC `x-request-id` metadata 接收并回写链路标识，内部统一命名为 TraceID；每次请求入口生成服务内 SpanID，仅随日志输出，不透传也不写入响应。两者与调用深度、安全的请求信息和原始 `Accept-Language` 一起在 HTTP Header、HTTP context、gRPC metadata 和业务 context 间传递，并注入 `standard.Context`；语言偏好继续透传给下游 gRPC 服务。Gateway 不透传任何 gRPC 响应头，HTTP 响应的 `X-Request-Id` 由外层 HTTP 中间件统一写入。
-- Logging 记录 gRPC 调用元数据；Payload Logging 分别记录请求和响应，敏感字段以及设置 `server.options.method.skip_log` 的完整 payload 使用 `***` 替代。
+- Logging 记录 gRPC 调用元数据；Payload Logging 分别记录请求和响应，敏感消息、敏感字段以及设置 `server.options.method.skip_log` 的完整 payload 使用 `***` 替代。
 - JWT Auth 使用 Option 注入的 `jwtx.Parser` 验证 Bearer Token（`WithJWTSecret` 为 HS256 快捷方式，`WithJWTAuth` 支持非对称算法和外部密钥源），验证后的 Claims 写入 `standard.Context`，业务侧通过 `JWT()` 或 `JWTClaims(target)` 读取；设置 `server.options.method.skip_auth` 的 RPC 跳过鉴权。
 - Permission 在注入 `WithPermissionFunc` 后启用，将方法名和 `server.options.method.permissions` 交给业务方法校验，不依赖角色模型或数据库。
 - Protovalidate 执行 `buf.validate` 规则，对原生 gRPC 和注解生成的 Gateway 请求生效。
