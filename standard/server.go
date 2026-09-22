@@ -136,7 +136,13 @@ func newGRPCServer(cfg config) (*grpc.Server, error) {
 		),
 		unaryPayloadLoggingInterceptor(),
 		unaryJWTAuthInterceptor(cfg.jwtAuth),
-		grpcprotovalidate.UnaryServerInterceptor(validator),
+	}
+	if cfg.permissionFunc != nil {
+		unaryInterceptors = append(unaryInterceptors, unaryPermissionInterceptor(cfg.permissionFunc))
+	}
+	unaryInterceptors = append(unaryInterceptors, grpcprotovalidate.UnaryServerInterceptor(validator))
+	if cfg.auditFunc != nil {
+		unaryInterceptors = append(unaryInterceptors, unaryAuditInterceptor(cfg.auditFunc))
 	}
 	unaryInterceptors = append(unaryInterceptors, cfg.unaryInterceptors...)
 	unaryInterceptors = append(unaryInterceptors, unaryErrorConverterInterceptor(cfg.errorConverters, cfg.i18nBundle))
@@ -149,7 +155,13 @@ func newGRPCServer(cfg config) (*grpc.Server, error) {
 		),
 		streamPayloadLoggingInterceptor(),
 		streamJWTAuthInterceptor(cfg.jwtAuth),
-		grpcprotovalidate.StreamServerInterceptor(validator),
+	}
+	if cfg.permissionFunc != nil {
+		streamInterceptors = append(streamInterceptors, streamPermissionInterceptor(cfg.permissionFunc))
+	}
+	streamInterceptors = append(streamInterceptors, grpcprotovalidate.StreamServerInterceptor(validator))
+	if cfg.auditFunc != nil {
+		streamInterceptors = append(streamInterceptors, streamAuditInterceptor(cfg.auditFunc))
 	}
 	streamInterceptors = append(streamInterceptors, cfg.streamInterceptors...)
 	streamInterceptors = append(streamInterceptors, streamErrorConverterInterceptor(cfg.errorConverters, cfg.i18nBundle))

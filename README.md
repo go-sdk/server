@@ -1,6 +1,6 @@
 # server
 
-`server` 是个人使用的 Go 服务基础类库，模块路径为 `github.com/go-sdk/server`。项目使用 gmux 在同一个端口提供原生 gRPC 和 grpc-gateway HTTP API，通过 `core/lifex` 管理进程生命周期，并统一请求上下文、访问日志、Payload Logging、JWT 鉴权、Protovalidate、Health、Recovery、TLS 和优雅停止行为。
+`server` 是个人使用的 Go 服务基础类库，模块路径为 `github.com/go-sdk/server`。项目使用 gmux 在同一个端口提供原生 gRPC 和 grpc-gateway HTTP API，通过 `core/lifex` 管理进程生命周期，并统一请求上下文、访问日志、Payload Logging、JWT 鉴权、权限与审计函数调用、Protovalidate、Health、Recovery、TLS 和优雅停止行为。
 
 ## 环境要求
 
@@ -287,6 +287,8 @@ server, err := standard.New(
 | `WithLogger`             | 替换默认的 `core/logx` gRPC 日志适配器               |
 | `WithJWTSecret`          | 注入 HS256 密钥并启用 JWT 鉴权                       |
 | `WithJWTAuth`            | 注入自定义 `jwtx.Parser`，支持非对称算法和外部密钥源 |
+| `WithPermissionFunc`     | 注入业务权限校验方法                                 |
+| `WithAuditFunc`          | 注入业务审计记录方法                                 |
 | `WithReflection`         | 启用标准 gRPC Reflection Service                     |
 
 ## 默认 Middleware
@@ -294,7 +296,7 @@ server, err := standard.New(
 gRPC interceptor 顺序为：
 
 ```text
-Request Context -> Logging -> Payload Logging -> JWT Auth -> Protovalidate -> 自定义 Interceptor -> Error Converter -> Recovery
+Request Context -> Logging -> Payload Logging -> JWT Auth -> Permission -> Protovalidate -> Audit -> 自定义 Interceptor -> Error Converter -> Recovery
 ```
 
 - Request Context 对外使用 `X-Request-Id` 请求头和 gRPC `x-request-id` metadata 接收与回写链路标识；内部统一命名为 TraceID（`standard.TraceIDKey`，日志字段 `trace-id`），缺失时生成 UUID v7，并在同一进程内透传。每次请求进入服务时生成新的 SpanID（`standard.SpanIDKey`，日志字段 `span-id`），标识本服务内单次请求到响应的处理，不向下游透传，也不出现在任何响应中。TraceID、SpanID、调用深度、客户端 IP、content-type、user-agent 和原始 `Accept-Language` 会写入 `standard.Context`，语言偏好还会透传给下游 gRPC 服务。
@@ -303,7 +305,9 @@ Request Context -> Logging -> Payload Logging -> JWT Auth -> Protovalidate -> �
 - Payload Logging 的 `content_length` 是 `proto.Size` 得到的逻辑消息长度，不代表压缩和 HTTP/2 帧编码后的网络字节数。
 - 方法设置 `(server.options.method).skip_log = true` 时仍记录请求与响应元数据，但 payload 使用 `***`；字段设置 `(server.options.field).sensitive = true` 时递归脱敏。
 - 配置 `WithJWTSecret` 后使用 HS256 验证 Bearer Token，`WithJWTAuth` 可注入非对称算法和外部密钥源的 `jwtx.Parser`；方法设置 `(server.options.method).skip_auth = true` 时跳过鉴权。
+- 配置 `WithPermissionFunc` 后，SDK 将方法名和 `(server.options.method).permissions` 交给业务方法校验；未声明 MethodOptions 的业务 RPC 按配置错误拒绝。
 - Protovalidate 执行 Protobuf 中的 `buf.validate` 规则，失败时返回 `InvalidArgument`。
+- 配置 `WithAuditFunc` 后，非空 `(server.options.method).audit_kind` 会在 RPC 完成时调用业务审计方法。Unary RPC 携带已按 `sensitive` 和 `skip_log` 脱敏的请求与响应；流式 RPC 只携带方法、类型、结果和耗时。回调错误仅记录，不改写已完成的业务结果。
 - Error Converter 按注册顺序将应用依赖错误转换为统一 `RespError`；额外 HTTP Handler 的未匹配错误统一隐藏为 `ErrInternal`。
 - Recovery 将 gRPC panic 转换为 `Internal`，额外 HTTP Handler 的 panic 转换为统一 `ErrInternal` 响应。
 

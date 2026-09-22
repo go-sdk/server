@@ -22,5 +22,9 @@ service UserService {
       post: "/core/v1/users"
       body: "*"
     };
+    option (server.options.method) = {
+      permissions: ["user.create"]
+      audit_kind: "user.create"
+    };
   }
 }

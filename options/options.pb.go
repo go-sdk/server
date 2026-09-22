@@ -30,7 +30,9 @@ type MethodOptions struct {
 	// 权限标识
 	Permissions []string `protobuf:"bytes,2,rep,name=permissions,proto3" json:"permissions,omitempty"`
 	// 是否跳过日志
-	SkipLog       bool `protobuf:"varint,3,opt,name=skip_log,json=skipLog,proto3" json:"skip_log,omitempty"`
+	SkipLog bool `protobuf:"varint,3,opt,name=skip_log,json=skipLog,proto3" json:"skip_log,omitempty"`
+	// 审计类型；非空时调用业务注入的审计方法
+	AuditKind     string `protobuf:"bytes,4,opt,name=audit_kind,json=auditKind,proto3" json:"audit_kind,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -84,6 +86,13 @@ func (x *MethodOptions) GetSkipLog() bool {
 		return x.SkipLog
 	}
 	return false
+}
+
+func (x *MethodOptions) GetAuditKind() string {
+	if x != nil {
+		return x.AuditKind
+	}
+	return ""
 }
 
 // 消息选项
@@ -287,11 +296,13 @@ var File_options_options_proto protoreflect.FileDescriptor
 
 const file_options_options_proto_rawDesc = "" +
 	"\n" +
-	"\x15options/options.proto\x12\x0eserver.options\x1a google/protobuf/descriptor.proto\"i\n" +
+	"\x15options/options.proto\x12\x0eserver.options\x1a google/protobuf/descriptor.proto\"\x88\x01\n" +
 	"\rMethodOptions\x12\x1b\n" +
 	"\tskip_auth\x18\x01 \x01(\bR\bskipAuth\x12 \n" +
 	"\vpermissions\x18\x02 \x03(\tR\vpermissions\x12\x19\n" +
-	"\bskip_log\x18\x03 \x01(\bR\askipLog\"\x10\n" +
+	"\bskip_log\x18\x03 \x01(\bR\askipLog\x12\x1d\n" +
+	"\n" +
+	"audit_kind\x18\x04 \x01(\tR\tauditKind\"\x10\n" +
 	"\x0eMessageOptions\",\n" +
 	"\fFieldOptions\x12\x1c\n" +
 	"\tsensitive\x18\x01 \x01(\bR\tsensitive\"M\n" +

@@ -27,11 +27,11 @@ var File_core_v1_user_service_proto protoreflect.FileDescriptor
 
 const file_core_v1_user_service_proto_rawDesc = "" +
 	"\n" +
-	"\x1acore/v1/user_service.proto\x12\acore.v1\x1a\x13common/common.proto\x1a\x12core/v1/user.proto\x1a\x1cgoogle/api/annotations.proto\x1a\x15options/options.proto2\x9f\x01\n" +
+	"\x1acore/v1/user_service.proto\x12\acore.v1\x1a\x13common/common.proto\x1a\x12core/v1/user.proto\x1a\x1cgoogle/api/annotations.proto\x1a\x15options/options.proto2\xbf\x01\n" +
 	"\vUserService\x12@\n" +
 	"\x06Health\x12\x14.server.common.Empty\x1a\x14.server.common.Empty\"\n" +
-	"ʞ\xf2\x84\x06\x04\b\x01\x18\x01\x12N\n" +
-	"\x06Create\x12\x16.core.v1.CreateUserReq\x1a\x11.server.common.Id\"\x19\x82\xd3\xe4\x93\x02\x13:\x01*\"\x0e/core/v1/usersB\x8e\x01\n" +
+	"ʞ\xf2\x84\x06\x04\b\x01\x18\x01\x12n\n" +
+	"\x06Create\x12\x16.core.v1.CreateUserReq\x1a\x11.server.common.Id\"9\x82\xd3\xe4\x93\x02\x13:\x01*\"\x0e/core/v1/usersʞ\xf2\x84\x06\x1a\x12\vuser.create\"\vuser.createB\x8e\x01\n" +
 	"\vcom.core.v1B\x10UserServiceProtoP\x01Z0github.com/go-sdk/server/tests/pb/core/v1;corev1\xa2\x02\x03CXX\xaa\x02\aCore.V1\xca\x02\aCore\\V1\xe2\x02\x13Core\\V1\\GPBMetadata\xea\x02\bCore::V1b\x06proto3"
 
 var file_core_v1_user_service_proto_goTypes = []any{

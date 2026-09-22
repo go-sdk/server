@@ -55,6 +55,8 @@ type config struct {
 	gatewayRegisters   []GatewayRegisterFunc
 	logger             grpclogging.Logger
 	jwtAuth            *jwtx.Parser
+	permissionFunc     PermissionFunc
+	auditFunc          AuditFunc
 	reflection         bool
 }
 
@@ -254,6 +256,28 @@ func WithJWTAuth(parser jwtx.Parser) Option {
 			return errx.New("jwt parser key func must not be nil")
 		}
 		c.jwtAuth = &parser
+		return nil
+	}
+}
+
+// WithPermissionFunc 注入业务权限校验方法。
+func WithPermissionFunc(invoke PermissionFunc) Option {
+	return func(c *config) error {
+		if invoke == nil {
+			return errx.New("permission func must not be nil")
+		}
+		c.permissionFunc = invoke
+		return nil
+	}
+}
+
+// WithAuditFunc 注入业务审计记录方法。
+func WithAuditFunc(invoke AuditFunc) Option {
+	return func(c *config) error {
+		if invoke == nil {
+			return errx.New("audit func must not be nil")
+		}
+		c.auditFunc = invoke
 		return nil
 	}
 }

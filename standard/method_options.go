@@ -13,7 +13,11 @@ import (
 	serveroptions "github.com/go-sdk/server/options"
 )
 
-const healthServiceName = "grpc.health.v1.Health"
+const (
+	healthServiceName            = "grpc.health.v1.Health"
+	reflectionV1ServiceName      = "grpc.reflection.v1.ServerReflection"
+	reflectionV1AlphaServiceName = "grpc.reflection.v1alpha.ServerReflection"
+)
 
 func methodOption(fullMethod string) *serveroptions.MethodOptions {
 	serviceName, methodName, ok := splitFullMethod(fullMethod)
@@ -48,6 +52,19 @@ func splitFullMethod(fullMethod string) (string, string, bool) {
 func isHealthMethod(fullMethod string) bool {
 	serviceName, _, ok := splitFullMethod(fullMethod)
 	return ok && serviceName == healthServiceName
+}
+
+func isSystemMethod(fullMethod string) bool {
+	serviceName, _, ok := splitFullMethod(fullMethod)
+	if !ok {
+		return false
+	}
+	switch serviceName {
+	case healthServiceName, reflectionV1ServiceName, reflectionV1AlphaServiceName:
+		return true
+	default:
+		return false
+	}
 }
 
 func shouldSkipMethodLog(fullMethod string) bool {

@@ -16,6 +16,8 @@ message MethodOptions {
   repeated string permissions = 2;
   // 是否跳过日志
   bool skip_log = 3;
+  // 审计类型；非空时调用业务注入的审计方法
+  string audit_kind = 4;
 }
 
 extend google.protobuf.MessageOptions {
