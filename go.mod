@@ -7,15 +7,15 @@ require (
 	buf.build/go/protovalidate v1.4.0
 	github.com/BurntSushi/toml v1.6.0
 	github.com/elastic/gmux v0.3.3
-	github.com/go-sdk/core v1.5.1
+	github.com/go-sdk/core v1.5.4
 	github.com/golang-jwt/jwt/v5 v5.3.1
 	github.com/grpc-ecosystem/go-grpc-middleware/v2 v2.3.4
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.30.0
 	github.com/nicksnyder/go-i18n/v2 v2.6.1
 	github.com/spf13/cast v1.10.0
 	golang.org/x/text v0.42.0
-	google.golang.org/genproto/googleapis/api v0.0.0-20260918162117-cecb64721679
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20260918162117-cecb64721679
+	google.golang.org/genproto/googleapis/api v0.0.0-20260921155816-b14227669459
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20260921155816-b14227669459
 	google.golang.org/grpc v1.84.0
 	google.golang.org/protobuf v1.36.12
 )
