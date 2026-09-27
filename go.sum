@@ -12,6 +12,8 @@ github.com/antlr4-go/antlr/v4 v4.13.1 h1:SqQKkuVZ+zWkMMNkjy5FZe5mr5WURWnlpmOuzYW
 github.com/antlr4-go/antlr/v4 v4.13.1/go.mod h1:GKmUxMtwp6ZgGwZSva4eWPC5mS6vUAmOABFgjdkM7Nw=
 github.com/brianvoe/gofakeit/v6 v6.28.0 h1:Xib46XXuQfmlLS2EXRuJpqcw8St6qSZz75OUo0tgAW4=
 github.com/brianvoe/gofakeit/v6 v6.28.0/go.mod h1:Xj58BMSnFqcn/fAQeSK+/PLtC5kSb7FJIq4JyGa8vEs=
+github.com/brianvoe/gofakeit/v7 v7.17.1 h1:50FLBhTGVJQaj6ysRUu0it8wCdYO2uGM9VfuxI+csEc=
+github.com/brianvoe/gofakeit/v7 v7.17.1/go.mod h1:QXuPeBw164PJCzCUZVmgpgHJ3Llj49jSLVkKPMtxtxA=
 github.com/elastic/gmux v0.3.3 h1:HEM7HOO10CKJUau/9WcnbQAPlo9EW85f0tWfMEidVaU=
 github.com/elastic/gmux v0.3.3/go.mod h1:kRSvlDg0rSzWmBamH/kNRFl+NoMKDU4VufUT98PnGHU=
 github.com/frankban/quicktest v1.14.6 h1:7Xjx+VpznH+oBnejlPUj8oUpdxnVs4f8XU8WnHkI4W8=
@@ -28,8 +30,8 @@ github.com/go-playground/universal-translator v0.18.2 h1:LCsMLC9RzmbUMNUPVYD15dm
 github.com/go-playground/universal-translator v0.18.2/go.mod h1:67VZIMp5lQpDWlnStOct22q1bkdJGJqHghbOtmkawxk=
 github.com/go-playground/validator/v10 v10.30.5 h1:YyCXvVShZbs2Sm3Mb53eNOlhRXctSOzW5QJAouCTZL4=
 github.com/go-playground/validator/v10 v10.30.5/go.mod h1:wEqiaov48pXX1kjhc3Da8y0M0Dtg/BK7gurFBLgwFrQ=
-github.com/go-sdk/core v1.5.8 h1:aGosOWD7lVBUL1tU593vq2QKP4P5xb74xdpJOz6QcNU=
-github.com/go-sdk/core v1.5.8/go.mod h1:yfcQ/dK3x/ECGqTZBkNWFRYg6x/fv6Tf6pze6aImgbI=
+github.com/go-sdk/core v1.6.1 h1:eUzZMVrJvOtkaFVtGrB8siV6X3VyeN2NaZwP0wpjDOQ=
+github.com/go-sdk/core v1.6.1/go.mod h1:OXgs/9i8lumg0vy8Cuz929CD24XNT6uNt7drKeZI6cs=
 github.com/go-viper/mapstructure/v2 v2.5.0 h1:vM5IJoUAy3d7zRSVtIwQgBj7BiWtMPfmPEgAXnvj1Ro=
 github.com/go-viper/mapstructure/v2 v2.5.0/go.mod h1:oJDH3BJKyqBA2TXFhDsKDGDTlndYOZ6rGS0BRZIxGhM=
 github.com/golang-jwt/jwt/v5 v5.3.1 h1:kYf81DTWFe7t+1VvL7eS+jKFVWaUnK9cB1qbwn63YCY=
