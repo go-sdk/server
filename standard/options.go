@@ -11,7 +11,6 @@ import (
 
 	"github.com/go-sdk/core/errx"
 	grpclogging "github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/logging"
-	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"github.com/nicksnyder/go-i18n/v2/i18n"
 	"golang.org/x/text/language"
 	"google.golang.org/grpc"
@@ -20,10 +19,10 @@ import (
 )
 
 // GRPCRegisterFunc 向统一的 gRPC Server 注册业务服务。
-type GRPCRegisterFunc func(grpc.ServiceRegistrar)
+type GRPCRegisterFunc func(ServiceRegistrar)
 
 // GatewayRegisterFunc 注册由 google.api.http 生成的 Gateway 路由。
-type GatewayRegisterFunc func(context.Context, *runtime.ServeMux, string, []grpc.DialOption) error
+type GatewayRegisterFunc func(context.Context, *ServeMux, string, []DialOption) error
 
 // HTTPServerOption 调整底层 HTTP Server 的标准参数，不允许替换 Handler。
 type HTTPServerOption func(*http.Server)
@@ -43,9 +42,9 @@ type config struct {
 	tlsConfig          *tls.Config
 	gatewayEndpoint    string
 	gatewayServerName  string
-	gatewayDialOptions []grpc.DialOption
-	gatewayOptions     []runtime.ServeMuxOption
-	grpcOptions        []grpc.ServerOption
+	gatewayDialOptions []DialOption
+	gatewayOptions     []ServeMuxOption
+	grpcOptions        []ServerOption
 	httpServerOptions  []HTTPServerOption
 	unaryInterceptors  []grpc.UnaryServerInterceptor
 	streamInterceptors []grpc.StreamServerInterceptor
@@ -161,18 +160,18 @@ func WithGatewayServerName(serverName string) Option {
 	return func(c *config) error { c.gatewayServerName = serverName; return nil }
 }
 
-func WithGatewayDialOptions(opts ...grpc.DialOption) Option {
+func WithGatewayDialOptions(opts ...DialOption) Option {
 	return func(c *config) error {
 		c.gatewayDialOptions = append(c.gatewayDialOptions, opts...)
 		return nil
 	}
 }
 
-func WithGatewayOptions(opts ...runtime.ServeMuxOption) Option {
+func WithGatewayOptions(opts ...ServeMuxOption) Option {
 	return func(c *config) error { c.gatewayOptions = append(c.gatewayOptions, opts...); return nil }
 }
 
-func WithGRPCServerOptions(opts ...grpc.ServerOption) Option {
+func WithGRPCServerOptions(opts ...ServerOption) Option {
 	return func(c *config) error { c.grpcOptions = append(c.grpcOptions, opts...); return nil }
 }
 

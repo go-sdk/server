@@ -45,7 +45,24 @@ responsePaging := paging.WithTotal(100)
 
 业务接口以 Protobuf gRPC 服务为唯一来源，通过 `google.api.http` 注解生成 HTTP API。Gateway 使用生成的 `Register*HandlerFromEndpoint` 回连同端口的真实 gRPC Server，因此 HTTP 和原生 gRPC 请求经过相同的 gRPC interceptor。
 
-上传、下载或 Webhook 等不适合建模为 RPC 的接口，可以通过 `Server.HandlePath` 直接注册到内部 Gateway Mux。底层 `runtime.ServeMux`、`http.Server` 和 `grpc.Server` 不对外暴露。
+上传、下载或 Webhook 等不适合建模为 RPC 的接口，可以通过 `Server.HandlePath` 直接注册到内部 Gateway Mux。Server 不提供获取内部 `runtime.ServeMux`、`http.Server` 和 `grpc.Server` 实例的公共方法。
+
+## 类型别名
+
+`standard` 提供以下常用类型别名，便于业务代码声明服务注册回调、连接和配置参数：
+
+| `standard` 类型 | 原类型 |
+|-----------------|--------|
+| `ServeMux` | `runtime.ServeMux` |
+| `ServeMuxOption` | `runtime.ServeMuxOption` |
+| `ServiceRegistrar` | `grpc.ServiceRegistrar` |
+| `ClientConn` | `grpc.ClientConn` |
+| `ClientConnInterface` | `grpc.ClientConnInterface` |
+| `DialOption` | `grpc.DialOption` |
+| `CallOption` | `grpc.CallOption` |
+| `ServerOption` | `grpc.ServerOption` |
+
+这些类型通过 `type X = 原类型` 定义，与原类型完全相同，可直接用于生成的 gRPC 客户端和 Gateway 注册函数。`NewClient` 返回 `*standard.ClientConn`；`GRPCRegisterFunc` 接收 `standard.ServiceRegistrar`，`GatewayRegisterFunc` 接收 `*standard.ServeMux` 和 `[]standard.DialOption`。底层配置函数仍从 `grpc` 和 `runtime` 包使用。
 
 ## HTTP 返回结构
 
@@ -151,7 +168,7 @@ server, err := standard.New(
 	standard.WithJWTSecret([]byte(os.Getenv("JWT_SECRET"))),
 	standard.WithReflection(),
 	standard.WithGRPCRegister(
-		func(registrar grpc.ServiceRegistrar) {
+		func(registrar standard.ServiceRegistrar) {
 			corev1.RegisterUserServiceServer(registrar, userService)
 		},
 	),
@@ -168,10 +185,10 @@ if err != nil {
 
 ```go
 standard.WithGRPCRegister(
-	func(registrar grpc.ServiceRegistrar) {
+	func(registrar standard.ServiceRegistrar) {
 		corev1.RegisterUserServiceServer(registrar, userService)
 	},
-	func(registrar grpc.ServiceRegistrar) {
+	func(registrar standard.ServiceRegistrar) {
 		bizv1.RegisterBillServiceServer(registrar, billService)
 	},
 )
@@ -368,7 +385,7 @@ conn, err := standard.NewClient(
 
 ```go
 server := testserver.New(t,
-	standard.WithGRPCRegister(func(registrar grpc.ServiceRegistrar) {
+	standard.WithGRPCRegister(func(registrar standard.ServiceRegistrar) {
 		corev1.RegisterUserServiceServer(registrar, &userService{})
 	}),
 )

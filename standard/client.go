@@ -18,7 +18,7 @@ import (
 )
 
 // NewClient 创建由 lifex 管理的标准 gRPC ClientConn，默认使用明文连接。
-func NewClient(target string, opts ...ClientOption) (*grpc.ClientConn, error) {
+func NewClient(target string, opts ...ClientOption) (*ClientConn, error) {
 	if strings.TrimSpace(target) == "" {
 		return nil, errx.New("grpc client target must not be empty")
 	}

@@ -20,7 +20,7 @@ type Server struct {
 	t        testing.TB
 	server   *standard.Server
 	listener *bufconn.Listener
-	conn     *grpc.ClientConn
+	conn     *standard.ClientConn
 	close    sync.Once
 }
 
@@ -55,7 +55,7 @@ func New(t testing.TB, opts ...standard.Option) *Server {
 }
 
 // Conn 返回连接到测试 Server 的 gRPC ClientConn。
-func (s *Server) Conn() *grpc.ClientConn { return s.conn }
+func (s *Server) Conn() *standard.ClientConn { return s.conn }
 
 // Close 释放 ClientConn、Server 和 bufconn Listener，支持重复调用。
 func (s *Server) Close() {

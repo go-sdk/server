@@ -21,6 +21,7 @@ server/
 │   ├── jwtx.go                     Signer、Parser、Codec 和 HS256/Ed25519 构造
 │   └── claims.go                   标准声明结构、额外声明和秒级时间戳编解码
 ├── standard/                       标准单端口 gRPC/Gateway Server
+│   ├── alias.go                    常用 Gateway 和 gRPC 类型别名
 │   ├── logger.go                   core/logx 的 gRPC logging 适配
 │   ├── client.go                   gRPC ClientConn 创建和 lifex 生命周期注册
 │   ├── client_options.go           Client 明文、TLS 和 middleware Options
@@ -94,6 +95,8 @@ Gateway 将成功的 Protobuf 消息放入 `data`，成功码为零且默认不�
 
 ## `standard` 包
 
+常用 Gateway 和 gRPC 类型别名定义在 `alias.go`，公共签名使用对应别名；类型映射和兼容性说明见 [README 类型别名](README.md#类型别名)。
+
 ### 初始化
 
 - `New` 应用 Options，创建 Protovalidate、标准 interceptor、`grpc.Server`、`runtime.ServeMux` 和 `http.Server`，然后向 `core/lifex` 注册启动和停止函数。
@@ -110,7 +113,7 @@ Gateway 将成功的 Protobuf 消息放入 `data`，成功码为零且默认不�
 - 额外 HTTP Context 暴露原始 Request、Response 和路径参数，并提供 Query、Header、表单文件读取及 JSON、文本、二进制响应辅助方法。
 - Handler 返回的 `RespError` 使用与 Gateway 相同的失败结构，默认按照 gRPC Code 映射 HTTP 状态码，并可通过错误码枚举的 `http_status` 或 `WithHTTPStatus` 覆盖额外 HTTP 接口的状态码；Error Converter、JWT 失败和 panic 也进入该响应链路，未匹配错误统一隐藏为 `ErrInternal`。
 - Handler 写入响应后再返回错误时仅记录日志，不追加或覆盖已经提交的响应。
-- 底层 Mux 和 Server 不作为公共 API 暴露。
+- Server 不提供获取内部 Mux 和 Server 实例的公共方法。
 
 ### Middleware
 

@@ -12,7 +12,7 @@ import (
 type ClientOption func(*clientConfig) error
 
 type clientConfig struct {
-	dialOptions        []grpc.DialOption
+	dialOptions        []DialOption
 	unaryInterceptors  []grpc.UnaryClientInterceptor
 	streamInterceptors []grpc.StreamClientInterceptor
 	logger             grpclogging.Logger
@@ -32,7 +32,7 @@ func (c clientConfig) validate() error {
 	return nil
 }
 
-func WithClientDialOptions(opts ...grpc.DialOption) ClientOption {
+func WithClientDialOptions(opts ...DialOption) ClientOption {
 	return func(c *clientConfig) error {
 		c.dialOptions = append(c.dialOptions, opts...)
 		return nil
