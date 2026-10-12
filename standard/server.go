@@ -102,7 +102,7 @@ func New(opts ...Option) (*Server, error) {
 }
 
 // HandlePath 注册无法通过 google.api.http 表达的额外 HTTP 接口。
-func (s *Server) HandlePath(method, path string, handler HandlerFunc) error {
+func (s *Server) HandlePath(method, path string, handler HandlerFunc, opts ...RouteOption) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if s.state != serverStateNew {
@@ -111,7 +111,16 @@ func (s *Server) HandlePath(method, path string, handler HandlerFunc) error {
 	if handler == nil {
 		return errx.New("http handler must not be nil")
 	}
-	if err := s.gatewayMux.HandlePath(method, path, s.httpRouteHandler(handler)); err != nil {
+	cfg := routeConfig{}
+	for _, opt := range opts {
+		if opt == nil {
+			return errx.New("http route option must not be nil")
+		}
+		if err := opt(&cfg); err != nil {
+			return errx.Wrap(err, "configure http route")
+		}
+	}
+	if err := s.gatewayMux.HandlePath(method, path, s.httpRouteHandler(handler, cfg)); err != nil {
 		return errx.Wrap(err, "register http route")
 	}
 	return nil

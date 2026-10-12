@@ -13,7 +13,7 @@ func TestHTTPRouteHandlerRendersRespError(t *testing.T) {
 	server := &Server{}
 	handler := server.httpRouteHandler(func(*Context) error {
 		return ErrInvalidParam.WithDomainReason("FILE_1001", "file.name.required")
-	})
+	}, routeConfig{})
 	recorder := httptest.NewRecorder()
 	handler(recorder, httptest.NewRequest(http.MethodGet, "/files", nil), nil)
 
@@ -33,7 +33,7 @@ func TestHTTPRouteHandlerConvertsKnownError(t *testing.T) {
 			return ErrNotFound.WithMessage("record not found"), errors.Is(err, sourceErr)
 		}),
 	}}}
-	handler := server.httpRouteHandler(func(*Context) error { return sourceErr })
+	handler := server.httpRouteHandler(func(*Context) error { return sourceErr }, routeConfig{})
 	recorder := httptest.NewRecorder()
 	handler(recorder, httptest.NewRequest(http.MethodGet, "/records/1", nil), nil)
 
@@ -51,7 +51,7 @@ func TestHTTPRouteHandlerUsesExplicitHTTPStatus(t *testing.T) {
 		return ErrResourceExhausted.
 			WithMessage("file is too large").
 			WithHTTPStatus(http.StatusRequestEntityTooLarge)
-	})
+	}, routeConfig{})
 	recorder := httptest.NewRecorder()
 	handler(recorder, httptest.NewRequest(http.MethodPost, "/upload", nil), nil)
 
@@ -62,7 +62,7 @@ func TestHTTPRouteHandlerUsesExplicitHTTPStatus(t *testing.T) {
 
 func TestHTTPRouteHandlerHidesUnknownError(t *testing.T) {
 	server := &Server{}
-	handler := server.httpRouteHandler(func(*Context) error { return errors.New("database password leaked") })
+	handler := server.httpRouteHandler(func(*Context) error { return errors.New("database password leaked") }, routeConfig{})
 	recorder := httptest.NewRecorder()
 	handler(recorder, httptest.NewRequest(http.MethodGet, "/records", nil), nil)
 
@@ -80,7 +80,7 @@ func TestHTTPRouteHandlerRequiresJWT(t *testing.T) {
 	handler := server.httpRouteHandler(func(*Context) error {
 		t.Fatal("handler must not run without a valid token")
 		return nil
-	})
+	}, routeConfig{})
 	recorder := httptest.NewRecorder()
 	handler(recorder, httptest.NewRequest(http.MethodGet, "/private", nil), nil)
 
@@ -94,7 +94,7 @@ func TestHTTPRouteHandlerRequiresJWT(t *testing.T) {
 
 func TestHTTPRouteHandlerRecoversPanic(t *testing.T) {
 	server := &Server{}
-	handler := server.httpRouteHandler(func(*Context) error { panic("failed") })
+	handler := server.httpRouteHandler(func(*Context) error { panic("failed") }, routeConfig{})
 	recorder := httptest.NewRecorder()
 	handler(recorder, httptest.NewRequest(http.MethodGet, "/panic", nil), nil)
 
@@ -110,7 +110,7 @@ func TestHTTPRouteHandlerDoesNotOverwriteCommittedResponse(t *testing.T) {
 			return err
 		}
 		return ErrInternal
-	})
+	}, routeConfig{})
 	recorder := httptest.NewRecorder()
 	handler(recorder, httptest.NewRequest(http.MethodGet, "/committed", nil), nil)
 

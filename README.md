@@ -222,7 +222,15 @@ err = server.HandlePath(
 
 额外 HTTP 接口会经过 HTTP 链路标识（TraceID/SpanID）、访问日志和 Recovery，但没有 protobuf 消息，因此不会应用 Protovalidate。
 
-配置 JWT 后，额外 HTTP 接口同样要求 `Authorization: Bearer <token>`，并可直接通过 `c.JWT()` 读取已验证的 Claims 和请求参数。鉴权失败和 Handler panic 也使用统一错误结构。额外接口没有 Protobuf MethodOptions，不能使用 `skip_auth`。
+配置 JWT 后，额外 HTTP 接口默认要求 `Authorization: Bearer <token>`，并可通过 `c.JWT()` 读取已验证的 Claims。Webhook 等自行鉴权的路由可显式跳过默认 JWT：
+
+```go
+err = server.HandlePath(http.MethodPost, "/webhook", webhook, standard.WithRouteSkipAuth())
+```
+
+`HandlePath` 的第四个参数为 `opts ...RouteOption`，不传选项时保持默认行为。选项在注册时按顺序应用；nil 选项或选项返回错误时注册失败。`WithRouteSkipAuth()` 仅跳过当前路由的 JWT 校验，不会生成 JWT Claims，也不影响其他路由或 RPC；Handler 必须完成自身所需的签名或其他鉴权。请求上下文、访问日志、Recovery 和错误转换仍然生效。RPC 的匿名访问继续由 Proto MethodOptions 的 `skip_auth` 控制。
+
+原有三参数直接调用保持兼容；将 `HandlePath` 方法赋给固定三参数函数类型的代码需要调整。
 
 ## 示例接口测试
 

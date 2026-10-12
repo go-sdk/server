@@ -11,7 +11,7 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-func (s *Server) httpRouteHandler(handler HandlerFunc) runtime.HandlerFunc {
+func (s *Server) httpRouteHandler(handler HandlerFunc, cfg routeConfig) runtime.HandlerFunc {
 	return func(response http.ResponseWriter, request *http.Request, pathParams map[string]string) {
 		ctx := NewHTTPContext(request, response, pathParams)
 		defer func() {
@@ -24,7 +24,7 @@ func (s *Server) httpRouteHandler(handler HandlerFunc) runtime.HandlerFunc {
 			}
 		}()
 
-		if s.config.jwtAuth != nil {
+		if s.config.jwtAuth != nil && !cfg.skipAuth {
 			requestContext, err := contextWithJWT(
 				request.Context(),
 				request.Header.Get("Authorization"),
