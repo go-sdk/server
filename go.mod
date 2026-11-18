@@ -7,21 +7,21 @@ require (
 	buf.build/go/protovalidate v1.4.0
 	github.com/BurntSushi/toml v1.6.0
 	github.com/elastic/gmux v0.3.3
-	github.com/go-sdk/core v1.6.8
+	github.com/go-sdk/core v1.6.9
 	github.com/golang-jwt/jwt/v5 v5.3.1
 	github.com/grpc-ecosystem/go-grpc-middleware/v2 v2.3.4
-	github.com/grpc-ecosystem/grpc-gateway/v2 v2.33.0
+	github.com/grpc-ecosystem/grpc-gateway/v2 v2.34.0
 	github.com/nicksnyder/go-i18n/v2 v2.7.0
 	github.com/spf13/cast v1.10.0
 	golang.org/x/text v0.44.0
-	google.golang.org/genproto/googleapis/api v0.0.0-20261110000943-09e21b237f2c
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20261110000943-09e21b237f2c
+	google.golang.org/genproto/googleapis/api v0.0.0-20261116203732-fd2c7689a808
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20261116203732-fd2c7689a808
 	google.golang.org/grpc v1.85.0
 	google.golang.org/protobuf v1.36.12
 )
 
 require (
-	cel.dev/cel-go v0.33.2 // indirect
+	cel.dev/cel-go v0.33.4 // indirect
 	cel.dev/expr v0.26.0 // indirect
 	github.com/antlr4-go/antlr/v4 v4.13.1 // indirect
 	github.com/fsnotify/fsnotify v1.10.1 // indirect
@@ -41,9 +41,9 @@ require (
 	github.com/samber/slog-zerolog/v2 v2.9.2 // indirect
 	github.com/sony/sonyflake/v2 v2.2.0 // indirect
 	go.yaml.in/yaml/v3 v3.0.6 // indirect
-	golang.org/x/crypto v0.58.0 // indirect
-	golang.org/x/exp v0.0.0-20261109185158-a52e3aef5920 // indirect
-	golang.org/x/net v0.62.0 // indirect
+	golang.org/x/crypto v0.59.0 // indirect
+	golang.org/x/exp v0.0.0-20261117202309-7a49493bfd90 // indirect
+	golang.org/x/net v0.63.0 // indirect
 	golang.org/x/sys v0.50.0 // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1 // indirect
 )
